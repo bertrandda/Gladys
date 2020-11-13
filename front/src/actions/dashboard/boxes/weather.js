@@ -1,7 +1,6 @@
 import { RequestStatus, GetWeatherStatus } from '../../../utils/consts';
 import { ERROR_MESSAGES } from '../../../../../server/utils/constants';
 import createBoxActions from '../boxActions';
-import dayjs from 'dayjs';
 import get from 'get-value';
 
 const BOX_KEY = 'Weather';
@@ -14,9 +13,6 @@ function createActions(store) {
       boxActions.updateBoxStatus(state, BOX_KEY, x, y, RequestStatus.Getting);
       try {
         const weather = await state.httpClient.get(`/api/v1/house/${box.house}/weather`);
-        weather.datetime_beautiful = dayjs(weather.datetime)
-          .locale(state.user.language)
-          .format('D MMM');
         boxActions.mergeBoxData(state, BOX_KEY, x, y, {
           weather
         });

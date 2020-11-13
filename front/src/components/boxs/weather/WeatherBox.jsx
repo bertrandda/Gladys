@@ -10,6 +10,8 @@ import {
   DASHBOARD_BOX_DATA_KEY
 } from '../../../utils/consts';
 import get from 'get-value';
+import dayjs from 'dayjs';
+import { weatherToIcon } from './utils'
 
 const padding = {
   paddingLeft: '40px',
@@ -105,7 +107,7 @@ const WeatherBox = ({ children, ...props }) => (
                 color: '#76838f'
               }}
             >
-              {props.datetimeBeautiful}
+              {dayjs(props.weather.data[0].datetime).format('D MMM')}
             </div>
             <div
               style={{
@@ -113,13 +115,13 @@ const WeatherBox = ({ children, ...props }) => (
               }}
               class="font-size-40 blue-grey-700"
             >
-              <Text id="global.degreeValue" fields={{ value: props.temperature }} />
+              <Text id="global.degreeValue" fields={{ value: Math.round(props.weather.data[0].temperature) }} />
               <span
                 style={{
                   fontSize: '30px'
                 }}
               >
-                {props.units === 'metric' ? 'C' : 'F'}
+                {props.weather.units === 'metric' ? 'C' : 'F'}
               </span>
             </div>
           </div>
@@ -129,62 +131,12 @@ const WeatherBox = ({ children, ...props }) => (
               padding: '10px'
             }}
           >
-            {props.weather === 'rain' && (
-              <i
-                class="fe fe-cloud-rain"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'clear' && (
-              <i
-                class="fe fe-sun"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'cloud' && (
-              <i
-                class="fe fe-cloud"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'snow' && (
-              <i
-                class="fe fe-cloud-snow"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'fog' && (
-              <i
-                class="fe fe-cloud"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'drizzle' && (
-              <i
-                class="fe fe-cloud-drizzle"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
-            {props.weather === 'thunderstorm' && (
-              <i
-                class="fe fe-cloud-lightning"
-                style={{
-                  fontSize: '60px'
-                }}
-              />
-            )}
+            <i
+              class={`fe ${weatherToIcon(props.weather.data[0], props.weather.sunrise, props.weather.sunset)}`}
+              style={{
+                fontSize: '60px'
+              }}
+            />
           </div>
         </div>
       </div>
@@ -201,24 +153,17 @@ class WeatherBoxComponent extends Component {
     setInterval(() => this.props.getWeather(this.props.box, this.props.x, this.props.y), BOX_REFRESH_INTERVAL_MS);
   }
 
-  render(props, {}) {
+  render(props, { }) {
     const boxData = get(props, `${DASHBOARD_BOX_DATA_KEY}Weather.${props.x}_${props.y}`);
     const boxStatus = get(props, `${DASHBOARD_BOX_STATUS_KEY}Weather.${props.x}_${props.y}`);
-    const weatherObject = get(boxData, 'weather');
-    const weather = get(weatherObject, 'weather');
-    const temperature = Math.round(get(weatherObject, 'temperature'));
-    const units = get(weatherObject, 'units');
-    const datetimeBeautiful = get(weatherObject, 'datetime_beautiful');
-    const houseName = get(weatherObject, 'house.name');
+    const weather = get(boxData, 'weather');
+    console.log('weatherbox', weather)
+
     return (
       <WeatherBox
         {...props}
         weather={weather}
-        temperature={temperature}
-        units={units}
         boxStatus={boxStatus}
-        datetimeBeautiful={datetimeBeautiful}
-        houseName={houseName}
       />
     );
   }

@@ -39,14 +39,14 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
    * @param {Object} options - Options parameters.
    * @param {number} options.latitude - The latitude to get the weather from.
    * @param {number} options.longitude - The longitude to get the weather from.
-   * @param {number} options.offset - Get weather in the future, offset is in hour.
+   * @param {number} [options.offset] - Get weather in the future, offset is in hour.
+   * @param {number} [options.datetime] - Get at a specific timestamp datetime.
    * @param {string} [options.language] - The language of the report.
    * @param {string} [options.units] - Unit of the weather [auto, si, us].
    * @example
    * gladys.services.openWeather.weather.get({
    *   latitude: 112,
    *   longitude: -2,
-   *   offset: 0,
    *   language: 'fr',
    *   units: 'metric'
    * });
@@ -55,15 +55,26 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
     const DEFAULT = {
       language: 'en',
       units: 'metric',
-      offset: 0,
+      mode: 'currently'
     };
+
+    if (options.offset) {
+      options.datetime = (options.datetime || Math.floor(Date.now() / 1000)) + 60 * options.offset;
+      delete options.offset;
+    }
+
     const optionsMerged = Object.assign({}, DEFAULT, options);
     const { latitude, longitude, language, units } = optionsMerged;
+
+    // currently -> current
+    // hourly -> hourely
+    // daily -> days
+    // si datetime ou offset -> 1 seul réponse
 
     if (!openWeatherApiKey) {
       throw new ServiceNotConfiguredError('Open Weather API Key not found');
     }
-    const url = `http://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${language}&units=${units}&cnt=1&appid=${openWeatherApiKey}`;
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${language}&units=${units}&cnt=1&appid=${openWeatherApiKey}`;
     try {
       logger.log(`OpenWeather URL : ${url}`);
       const { data } = await axios.get(url);

@@ -12,7 +12,7 @@ function createActions(store) {
     async getWeather(state, box, x, y) {
       boxActions.updateBoxStatus(state, BOX_KEY, x, y, RequestStatus.Getting);
       try {
-        const weather = await state.httpClient.get(`/api/v1/house/${box.house}/weather`);
+        const weather = await state.httpClient.get(`/api/v1/house/${box.house}/weather?mode=${box.mode}`);
         boxActions.mergeBoxData(state, BOX_KEY, x, y, {
           weather
         });

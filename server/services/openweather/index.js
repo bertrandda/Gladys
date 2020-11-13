@@ -52,6 +52,10 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
    * });
    */
   async function get(options) {
+    if (!openWeatherApiKey) {
+      throw new ServiceNotConfiguredError('Open Weather API Key not found');
+    }
+
     const DEFAULT = {
       language: 'en',
       units: 'metric',
@@ -70,10 +74,6 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
     // hourly -> hourely
     // daily -> days
     // si datetime ou offset -> 1 seul réponse
-
-    if (!openWeatherApiKey) {
-      throw new ServiceNotConfiguredError('Open Weather API Key not found');
-    }
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${language}&units=${units}&cnt=1&appid=${openWeatherApiKey}`;
     try {
       logger.log(`OpenWeather URL : ${url}`);

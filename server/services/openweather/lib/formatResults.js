@@ -45,21 +45,23 @@ function formatOneForcast(forcast) {
 function formatResults(options, result) {
   const dataToReturn = {};
 
-  dataToReturn.name = result.name || result.city.name;
+  dataToReturn.name = result.current ? result.current.name : result.forcast.city.name;
   dataToReturn.units = options.units === 'standard' ? 'si' : options.units;
 
-  if (options.mode === 'current') {
-    dataToReturn.sunrise = result.sys.sunrise * 1000;
-    dataToReturn.sunset = result.sys.sunset * 1000;
-    dataToReturn.data = [formatOneForcast(result)];
-  } else if (options.mode === 'hourly') {
-    dataToReturn.sunrise = result.city.sunrise * 1000;
-    dataToReturn.sunset = result.city.sunset * 1000;
-    dataToReturn.data = result.list
+  if (result.current) {
+    dataToReturn.sunrise = result.current.sys.sunrise * 1000;
+    dataToReturn.sunset = result.current.sys.sunset * 1000;
+    dataToReturn.current = formatOneForcast(result.current);
+  }
+
+  if (options.mode === 'hourly') {
+    dataToReturn.sunrise = result.forcast.city.sunrise * 1000;
+    dataToReturn.sunset = result.forcast.city.sunset * 1000;
+    dataToReturn.data = result.forcast.list
       .filter((forcast) => !options.datetime || Math.abs(forcast.dt - options.datetime) < 3 * 60 * 60)
       .map((forcast) => formatOneForcast(forcast));
   } else if (options.mode === 'daily') {
-    dataToReturn.data = result.list
+    dataToReturn.data = result.forcast.list
       .filter((forcast) => !options.datetime || Math.abs(forcast.dt - options.datetime) < 24 * 60 * 60)
       .map((forcast) => formatOneForcast(forcast));
   }

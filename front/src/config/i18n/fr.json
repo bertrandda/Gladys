@@ -192,7 +192,8 @@
         "percent": "%",
         "modes": {
           "current": "Météo actuelle.",
-          "hourly": "Météo des prochaines heures."
+          "hourly": "Météo des prochaines heures.",
+          "daily": "Météo des prochains jours."
         }
       },
       "devicesInRoom": {

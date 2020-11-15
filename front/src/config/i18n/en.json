@@ -192,7 +192,8 @@
         "percent": "%",
         "modes": {
           "current": "Current weather.",
-          "hourly": "Weather forecast for the next few hours."
+          "hourly": "Weather forecast for the next few hours.",
+          "daily": "Weather forecast for the next fex days."
         }
       },
       "devicesInRoom": {

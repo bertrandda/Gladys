@@ -24,6 +24,7 @@ const BOX_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
 const WeatherBox = ({ children, ...props }) => (
   <div class="card">
+    {dayjs().locale(props.user.language)}
     {props.boxStatus === GetWeatherStatus.HouseHasNoCoordinates && (
       <div>
         <h4 class="card-header">
@@ -105,7 +106,7 @@ const WeatherBox = ({ children, ...props }) => (
             color: '#76838f'
           }}
         >
-          {`${dayjs(props.weather.data[0].datetime).format('D MMM')} - ${props.weather.name}`}
+          {`${dayjs(props.weather.current.datetime).format('D MMM')} - ${props.weather.name}`}
         </div>
         <div class="row">
           <div class="col-9">
@@ -116,7 +117,7 @@ const WeatherBox = ({ children, ...props }) => (
               }}
               class="font-size-40 blue-grey-700"
             >
-              {`${Math.round(props.weather.data[0].temperature)}°`}
+              {`${Math.round(props.weather.current.temperature)}°`}
               <span
                 style={{
                   fontSize: '30px'
@@ -135,7 +136,7 @@ const WeatherBox = ({ children, ...props }) => (
             }}
           >
             <i
-              class={`fe ${weatherToIcon(props.weather.data[0], props.weather.sunrise, props.weather.sunset)}`}
+              class={`fe ${weatherToIcon(props.weather.current, props.weather.sunrise, props.weather.sunset)}`}
               style={{
                 fontSize: '60px'
               }}
@@ -150,7 +151,7 @@ const WeatherBox = ({ children, ...props }) => (
                 paddingRight: '5px'
               }}
             />
-            {props.weather.data[0].humidity}
+            {props.weather.current.humidity}
             <span
               style={{
                 fontSize: '12px',
@@ -167,7 +168,7 @@ const WeatherBox = ({ children, ...props }) => (
                 paddingRight: '5px'
               }}
             />
-            {props.weather.data[0].wind_speed}
+            {props.weather.current.wind_speed}
             <span
               style={{
                 fontSize: '12px',
@@ -179,14 +180,16 @@ const WeatherBox = ({ children, ...props }) => (
           </span>
         </div>
 
-        {props.weather.options.mode === 'hourly' && (
+        {(props.weather.options.mode === 'hourly' || props.weather.options.mode === 'daily') && (
           <div style={{ display: 'flex' }}>
             {props.weather.data
-              .filter((forcast, i) => i > 0 && i < 8)
+              .filter((forcast, i) => (props.weather.options.mode !== 'daily' || i > 0) && i < 7)
               .map(forcast => (
                 <div style={Object.assign({ width: '14%', margin: '0.25em 1.25%' })}>
                   <p style={{ margin: 'auto', textAlign: 'center', fontSize: '10px', color: 'grey' }}>
-                    {`${dayjs(forcast.datetime).format('HH')}h`}
+                    {`${dayjs(forcast.datetime).format(props.weather.options.mode === 'hourly' ? 'HH' : 'ddd')}${
+                      props.weather.options.mode === 'hourly' ? 'h' : ''
+                    }`}
                   </p>
                   <p style={{ margin: 'auto', textAlign: 'center' }}>
                     <i
@@ -206,7 +209,7 @@ const WeatherBox = ({ children, ...props }) => (
   </div>
 );
 
-@connect('DashboardBoxDataWeather,DashboardBoxStatusWeather', actions)
+@connect('user,DashboardBoxDataWeather,DashboardBoxStatusWeather', actions)
 class WeatherBoxComponent extends Component {
   componentDidMount() {
     // get the weather

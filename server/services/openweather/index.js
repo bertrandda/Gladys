@@ -76,33 +76,55 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
     const { latitude, longitude, language, units, mode } = optionsMerged;
 
     let route = '/weather';
-    switch (mode) {
-      case 'hourly':
-        route = '/forecast';
-        break;
-      case 'daily':
-        route = '/forecast/daily';
-        break;
-      default:
-    }
-    const url = `https://api.openweathermap.org/data/2.5${route}`;
-    try {
-      logger.log(`OpenWeather URL : ${url}`);
-      const { data } = await axios.get(url, {
-        params: {
-          lat: latitude,
-          lon: longitude,
-          lang: language,
-          units,
-          appid: openWeatherApiKey,
-        },
-      });
+    const result = {};
 
-      return formatResults(optionsMerged, data);
-    } catch (e) {
-      logger.error(e);
-      throw new Error400(ERROR_MESSAGES.REQUEST_TO_THIRD_PARTY_FAILED);
+    if (mode === 'current' || !options.datetime) {
+      try {
+        const { data } = await axios.get(`https://api.openweathermap.org/data/2.5${route}`, {
+          params: {
+            lat: latitude,
+            lon: longitude,
+            lang: language,
+            units,
+            appid: openWeatherApiKey,
+          },
+        });
+        result.current = data;
+      } catch (e) {
+        logger.error(e);
+        throw new Error400(ERROR_MESSAGES.REQUEST_TO_THIRD_PARTY_FAILED);
+      }
     }
+
+    if (mode === 'hourly' || mode === 'daily') {
+      switch (mode) {
+        case 'hourly':
+          route = '/forecast';
+          break;
+        case 'daily':
+          route = '/forecast/daily';
+          break;
+        default:
+      }
+
+      try {
+        const { data } = await axios.get(`https://api.openweathermap.org/data/2.5${route}`, {
+          params: {
+            lat: latitude,
+            lon: longitude,
+            lang: language,
+            units,
+            appid: openWeatherApiKey,
+          },
+        });
+
+        result.forcast = data;
+      } catch (e) {
+        logger.error(e);
+        throw new Error400(ERROR_MESSAGES.REQUEST_TO_THIRD_PARTY_FAILED);
+      }
+    }
+    return formatResults(optionsMerged, result);
   }
 
   return Object.freeze({

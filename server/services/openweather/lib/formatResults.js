@@ -6,12 +6,12 @@
  */
 function formatOneForcast(forcast) {
   const formatedForcast = {};
-  formatedForcast.temperature = forcast.main.temp;
-  formatedForcast.humidity = forcast.main.humidity;
-  formatedForcast.pressure = forcast.main.pressure;
-  formatedForcast.datetime = forcast.dt;
-  formatedForcast.wind_speed = forcast.wind.speed;
-  formatedForcast.wind_direction = forcast.wind.deg;
+  formatedForcast.temperature = forcast.main ? forcast.main.temp : forcast.temp.day;
+  formatedForcast.humidity = forcast.humidity || forcast.main.humidity;
+  formatedForcast.pressure = forcast.pressure || forcast.main.pressure;
+  formatedForcast.datetime = forcast.dt * 1000;
+  formatedForcast.wind_speed = forcast.speed || forcast.wind.speed;
+  formatedForcast.wind_direction = forcast.deg || forcast.wind.deg;
 
   if (forcast.weather[0].main.search('Snow') !== -1) {
     formatedForcast.weather = 'snow';
@@ -46,22 +46,22 @@ function formatResults(options, result) {
   const dataToReturn = {};
 
   dataToReturn.name = result.name || result.city.name;
-  dataToReturn.units = options.units;
+  dataToReturn.units = options.units === 'standard' ? 'si' : options.units;
 
-  if (options.mode === 'currently') {
-    dataToReturn.sunrise = result.sys.sunrise;
-    dataToReturn.sunset = result.sys.sunset;
+  if (options.mode === 'current') {
+    dataToReturn.sunrise = result.sys.sunrise * 1000;
+    dataToReturn.sunset = result.sys.sunset * 1000;
     dataToReturn.data = [formatOneForcast(result)];
   } else if (options.mode === 'hourly') {
-    dataToReturn.sunrise = result.city.sunrise;
-    dataToReturn.sunset = result.city.sunset;
+    dataToReturn.sunrise = result.city.sunrise * 1000;
+    dataToReturn.sunset = result.city.sunset * 1000;
     dataToReturn.data = result.list
-      .filter(forcast => (!options.datetime || Math.abs(forcast.dt - options.datetime) < 60))
-      .map(forcast => formatOneForcast(forcast));
+      .filter((forcast) => !options.datetime || Math.abs(forcast.dt - options.datetime) < 3 * 60 * 60)
+      .map((forcast) => formatOneForcast(forcast));
   } else if (options.mode === 'daily') {
     dataToReturn.data = result.list
-      .filter(forcast => (!options.datetime || Math.abs(forcast.dt - options.datetime) < 86400))
-      .map(forcast => formatOneForcast(forcast));
+      .filter((forcast) => !options.datetime || Math.abs(forcast.dt - options.datetime) < 24 * 60 * 60)
+      .map((forcast) => formatOneForcast(forcast));
   }
 
   return dataToReturn;

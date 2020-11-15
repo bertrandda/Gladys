@@ -11,7 +11,7 @@ import {
 } from '../../../utils/consts';
 import get from 'get-value';
 import dayjs from 'dayjs';
-import { weatherToIcon } from './utils'
+import { weatherToIcon } from './utils';
 
 const padding = {
   paddingLeft: '40px',
@@ -99,36 +99,39 @@ const WeatherBox = ({ children, ...props }) => (
     )}
     {props.weather && (
       <div style={padding} class="card-block px-30 py-10">
+        <div
+          style={{
+            fontSize: '14px',
+            color: '#76838f'
+          }}
+        >
+          {`${dayjs(props.weather.data[0].datetime).format('D MMM')} - ${props.weather.name}`}
+        </div>
         <div class="row">
-          <div class="col-6">
+          <div class="col-9">
             <div
               style={{
-                fontSize: '14px',
-                color: '#76838f'
-              }}
-            >
-              {dayjs(props.weather.data[0].datetime).format('D MMM')}
-            </div>
-            <div
-              style={{
-                fontSize: '40px'
+                fontSize: '40px',
+                lineHeight: '1.2'
               }}
               class="font-size-40 blue-grey-700"
             >
-              <Text id="global.degreeValue" fields={{ value: Math.round(props.weather.data[0].temperature) }} />
+              {`${Math.round(props.weather.data[0].temperature)}°`}
               <span
                 style={{
                   fontSize: '30px'
                 }}
               >
-                {props.weather.units === 'metric' ? 'C' : 'F'}
+                {props.weather.units === 'si' ? 'K' : props.weather.units === 'metric' ? 'C' : 'F'}
               </span>
             </div>
           </div>
           <div
-            class="col-6 text-right"
+            class="col-3 text-right"
             style={{
-              padding: '10px'
+              paddingRight: '10px',
+              paddingLeft: '10px',
+              marginTop: '-0.75rem'
             }}
           >
             <i
@@ -139,6 +142,65 @@ const WeatherBox = ({ children, ...props }) => (
             />
           </div>
         </div>
+        <div class="col-9" style={{ padding: '0' }}>
+          <span>
+            <i
+              class="fe fe-droplet"
+              style={{
+                paddingRight: '5px'
+              }}
+            />
+            {props.weather.data[0].humidity}
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'grey'
+              }}
+            >
+              <Text id="dashboard.boxes.weather.percent" />
+            </span>
+          </span>
+          <span style={{ float: 'right' }}>
+            <i
+              class="fe fe-wind"
+              style={{
+                paddingRight: '5px'
+              }}
+            />
+            {props.weather.data[0].wind_speed}
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'grey'
+              }}
+            >
+              {props.weather.units === 'imperial' ? 'mph/h' : 'm/s'}
+            </span>
+          </span>
+        </div>
+
+        {props.weather.options.mode === 'hourly' && (
+          <div style={{ display: 'flex' }}>
+            {props.weather.data
+              .filter((forcast, i) => i > 0 && i < 8)
+              .map(forcast => (
+                <div style={Object.assign({ width: '14%', margin: '0.25em 1.25%' })}>
+                  <p style={{ margin: 'auto', textAlign: 'center', fontSize: '10px', color: 'grey' }}>
+                    {`${dayjs(forcast.datetime).format('HH')}h`}
+                  </p>
+                  <p style={{ margin: 'auto', textAlign: 'center' }}>
+                    <i
+                      className={`fe ${weatherToIcon(forcast, props.weather.sunrise, props.weather.sunset)}`}
+                      style={{ fontSize: '20px' }}
+                    />
+                  </p>
+                  <p style={{ margin: 'auto', textAlign: 'center', fontSize: '12px' }}>{`${Math.round(
+                    forcast.temperature
+                  )}°`}</p>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
     )}
   </div>
@@ -153,19 +215,12 @@ class WeatherBoxComponent extends Component {
     setInterval(() => this.props.getWeather(this.props.box, this.props.x, this.props.y), BOX_REFRESH_INTERVAL_MS);
   }
 
-  render(props, { }) {
+  render(props, {}) {
     const boxData = get(props, `${DASHBOARD_BOX_DATA_KEY}Weather.${props.x}_${props.y}`);
     const boxStatus = get(props, `${DASHBOARD_BOX_STATUS_KEY}Weather.${props.x}_${props.y}`);
     const weather = get(boxData, 'weather');
-    console.log('weatherbox', weather)
 
-    return (
-      <WeatherBox
-        {...props}
-        weather={weather}
-        boxStatus={boxStatus}
-      />
-    );
+    return <WeatherBox {...props} weather={weather} boxStatus={boxStatus} />;
   }
 }
 

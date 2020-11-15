@@ -188,7 +188,12 @@
         "requestToThirdPartyFailed": "The request to OpenWeather API failed. Is your Gladys instance connected to the internet? Please go to the OpenWeather configuration panel to troubleshoot this problem.",
         "clickHere": "Click here to access the OpenWeather configuration panel.",
         "unknownError": "We are unable to get the weather for this house. Did you define a house for this box?",
-        "editModeLabel": "Select the mode you want to display."
+        "editModeLabel": "Select the mode you want to display.",
+        "percent": "%",
+        "modes": {
+          "current": "Current weather.",
+          "hourly": "Weather forecast for the next few hours."
+        }
       },
       "devicesInRoom": {
         "editRoomLabel": "Select the room you want to display here.",

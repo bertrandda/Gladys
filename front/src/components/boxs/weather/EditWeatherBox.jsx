@@ -3,7 +3,6 @@ import { connect } from 'unistore/preact';
 import { Text } from 'preact-i18n';
 import actions from '../../../actions/dashboard/edit-boxes/editWeather';
 import BaseEditBox from '../baseEditBox';
-import { GetWeatherModes } from '../../../utils/consts';
 
 const EditWeatherBox = ({ children, ...props }) => (
   <BaseEditBox {...props} titleKey="dashboard.boxTitle.weather">
@@ -30,20 +29,18 @@ const EditWeatherBox = ({ children, ...props }) => (
         </label>
       </div>
       <div>
-        {GetWeatherModes.map(mode => {
-          return (
-            <label>
-              <input
-                type="radio"
-                name="mode"
-                value={mode.split(' ')[0]}
-                checked={mode.split(' ')[0] === props.box.mode}
-                onChange={props.updateBoxMode}
-              />
-              &nbsp;{mode}
-            </label>
-          );
-        })}
+        {Object.keys(props.dictionary.modes).map(mode => (
+          <label style={{ display: 'block', margin: 0 }}>
+            <input
+              type="radio"
+              name="mode"
+              value={mode}
+              checked={mode === props.box.mode}
+              onChange={props.updateBoxMode}
+            />
+            &nbsp;{props.dictionary.modes[mode]}
+          </label>
+        ))}
       </div>
     </div>
   </BaseEditBox>
@@ -68,7 +65,14 @@ class EditWeatherBoxComponent extends Component {
   }
 
   render(props, {}) {
-    return <EditWeatherBox {...props} updateBoxHouse={this.updateBoxHouse} updateBoxMode={this.updateBoxMode} />;
+    return (
+      <EditWeatherBox
+        {...props}
+        updateBoxHouse={this.updateBoxHouse}
+        updateBoxMode={this.updateBoxMode}
+        dictionary={this.context.intl.dictionary.dashboard.boxes.weather}
+      />
+    );
   }
 }
 

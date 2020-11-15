@@ -1,17 +1,26 @@
+import dayjs from 'dayjs';
+
 /**
  * Return the correct icon associate to the weather.
- * @param {Object} forcast - Forecast associate data
+ * @param {Object} forcast - Forecast data
  * @param {integer} sunrise - Timestamp of sunrise
  * @param {integer} sunset - Timestamp of sunrset
  */
 function weatherToIcon(forcast, sunrise, sunset) {
+  const datetimeDjs = dayjs(forcast.datetime);
+  const sunriseDjs = dayjs(sunrise);
+  const sunsetDjs = dayjs(sunset);
   switch (forcast.weather) {
     case 'rain':
       return 'fe-cloud-rain';
     case 'clear':
-      if (forcast.datetime > sunrise
-        && forcast.datetime < sunset) {
-          return 'fe-sun';
+      if (
+        (datetimeDjs.hour() > sunriseDjs.hour() ||
+          (datetimeDjs.hour() === sunriseDjs.hour() && datetimeDjs.minute() > sunriseDjs.minute())) &&
+        (datetimeDjs.hour() < sunsetDjs.hour() ||
+          (datetimeDjs.hour() === sunsetDjs.hour() && datetimeDjs.minute() < sunsetDjs.minute()))
+      ) {
+        return 'fe-sun';
       }
       return 'fe-moon';
     case 'cloud':
@@ -27,6 +36,6 @@ function weatherToIcon(forcast, sunrise, sunset) {
   }
 
   return 'fe-question';
-};
+}
 
 export { weatherToIcon };

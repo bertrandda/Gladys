@@ -39,10 +39,11 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
    * @param {Object} options - Options parameters.
    * @param {number} options.latitude - The latitude to get the weather from.
    * @param {number} options.longitude - The longitude to get the weather from.
+   * @param {number} [options.mode] - The data to request [current, hourly, daily].
    * @param {number} [options.offset] - Get weather in the future, offset is in hour.
    * @param {number} [options.datetime] - Get at a specific timestamp datetime.
    * @param {string} [options.language] - The language of the report.
-   * @param {string} [options.units] - Unit of the weather [auto, si, us].
+   * @param {string} [options.units] - Unit of the weather [si, metric, imperial].
    * @example
    * gladys.services.openWeather.weather.get({
    *   latitude: 112,
@@ -56,30 +57,48 @@ module.exports = function OpenWeatherService(gladys, serviceId) {
       throw new ServiceNotConfiguredError('Open Weather API Key not found');
     }
 
-    const DEFAULT = {
-      language: 'en',
-      units: 'metric',
-      mode: 'currently'
-    };
-
     if (options.offset) {
       options.datetime = (options.datetime || Math.floor(Date.now() / 1000)) + 60 * options.offset;
       delete options.offset;
     }
 
-    const optionsMerged = Object.assign({}, DEFAULT, options);
-    const { latitude, longitude, language, units } = optionsMerged;
+    if (options.units === 'si') {
+      options.units = 'standard';
+    }
 
-    // currently -> current
-    // hourly -> hourely
-    // daily -> days
-    // si datetime ou offset -> 1 seul réponse
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${language}&units=${units}&cnt=1&appid=${openWeatherApiKey}`;
+    const DEFAULT = {
+      language: 'en',
+      units: 'metric',
+      mode: 'current',
+    };
+
+    const optionsMerged = Object.assign({}, DEFAULT, options);
+    const { latitude, longitude, language, units, mode } = optionsMerged;
+
+    let route = '/weather';
+    switch (mode) {
+      case 'hourly':
+        route = '/forecast';
+        break;
+      case 'daily':
+        route = '/forecast/daily';
+        break;
+      default:
+    }
+    const url = `https://api.openweathermap.org/data/2.5${route}`;
     try {
       logger.log(`OpenWeather URL : ${url}`);
-      const { data } = await axios.get(url);
-      const weatherFormatted = formatResults(optionsMerged, data);
-      return weatherFormatted;
+      const { data } = await axios.get(url, {
+        params: {
+          lat: latitude,
+          lon: longitude,
+          lang: language,
+          units,
+          appid: openWeatherApiKey,
+        },
+      });
+
+      return formatResults(optionsMerged, data);
     } catch (e) {
       logger.error(e);
       throw new Error400(ERROR_MESSAGES.REQUEST_TO_THIRD_PARTY_FAILED);

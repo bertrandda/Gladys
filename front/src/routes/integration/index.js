@@ -21,7 +21,7 @@ class Integration extends Component {
       searchKeyword: '',
       orderDir: 'asc'
     };
-    this.getIntegrationsDebounced = debounce(this.getIntegrations, 300).bind(this);
+    this.getIntegrationsDebounced = debounce(this.getIntegrations, 300);
   }
 
   componentWillMount() {

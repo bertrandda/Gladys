@@ -236,7 +236,9 @@ describe('AirplayHandler.setValue', () => {
     const device = devices[0];
     const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
     await airplayHandlerWithTimeout.setValue(device, device.features[0], 'http://play-url.com');
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
     clock.tick(5 * 60 * 1000);
     sinon.assert.calledOnce(killStub);
     sinon.assert.calledOnce(stopSender);

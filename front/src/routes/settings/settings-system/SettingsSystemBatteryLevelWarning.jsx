@@ -50,7 +50,7 @@ class SettingsSystemBatteryLevelWarning extends Component {
     });
   };
 
-  debouncedUpdateBatteryLevelUnderWarningThreshold = debounce(this.updateBatteryLevelUnderWarningThreshold, 200);
+  debouncedUpdateBatteryLevelUnderWarningThreshold = debounce(this.updateBatteryLevelUnderWarningThreshold, 200).bind(this);
 
   updateBatteryLevelUnderWarningEnabled = async () => {
     const value = !this.state.batteryLevelUnderWarningEnabled;

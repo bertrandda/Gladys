@@ -2192,6 +2192,75 @@
       "generateButton": "Générer",
       "keyNameLabel": "Clé :",
       "registeredLabel": "Enregistré le :"
+    },
+    "viessmann": {
+      "title": "Viessmann",
+      "description": "Contrôler les systèmes de chauffage Viessmann",
+      "deviceTab": "Appareils",
+      "discoverTab": "Découverte Viessmann",
+      "setupTab": "Configuration",
+      "documentation": "Documentation Viessmann",
+      "discoverDeviceDescr": "Scanner automatiquement les appareils Viessmann",
+      "status": {
+        "notConfigured": "Le service Viessmann n'est pas configuré",
+        "disconnect": "Gladys n'est pas connectée à Viessmann",
+        "notConnected": "Gladys n'a pas réussi à se connecter au compte Viessmann, veuillez vérifier vos informations d'identification sur la ",
+        "setupPageLink": "Page de configuration Viessmann.",
+        "connect": "Gladys est connectée à Viessmann",
+        "connecting": "Configuration sauvegardée. Connexion à votre compte Viessmann en cours...",
+        "processingToken": "Connexion à votre compte Viessmann... Récupération du token d'accès.",
+        "getDevicesValues": "Récupération des données en cours...",
+        "discoveringDevices": "Récupération des appareils en cours...",
+        "errorConnecting": {
+          "other_error": "Erreur lors de l'autorisation. Vous pouvez inspecter l'erreur dans la console de votre navigateur. Si l'erreur persiste, veuillez poster les logs sur le forum.",
+          "access_denied": "Autorisation déclinée, veuillez tenter de nouveau et accepter la demande d'accès à vos données.",
+          "invalid_client": "Identifiant client invalide. Veuillez vérifier les informations de votre compte développeur Viessmann.",
+          "get_access_token_fail": "Informations renseignées erronées ou compte désactivé. Veuillez vérifier les informations de votre compte développeur Viessmann."
+        }
+      },
+      "device": {
+        "title": "Appareils Viessmann dans Gladys",
+        "descriptionInformation": "La récupération des états se fait actuellement toutes les 2 minutes.",
+        "noDeviceFound": "Aucun appareil Viessmann n'a encore été ajouté.",
+        "externalIdLabel": "ID de l'appareil Viessmann",
+        "nameLabel": "Nom de l'appareil",
+        "namePlaceholder": "Entrez le nom de votre appareil",
+        "modelLabel": "Modèle",
+        "roomLabel": "Pièce",
+        "featuresLabel": "Fonctionnalités",
+        "saveButton": "Sauvegarder",
+        "deleteButton": "Supprimer",
+        "noValueReceived": "Aucune valeur reçue."
+      },
+      "discover": {
+        "title": "Vos appareils Viessmann compatibles avec Gladys",
+        "description": "Vos appareils Viessmann doivent être configurés dans votre compte Viessmann avant d'être ajoutés à Gladys. La première découverte se fait automatiquement. Appuyer sur 'Rafraîchir' si vous souhaitez récupérer de nouveaux appareils.",
+        "descriptionInformation": "La récupération des états se fait actuellement toutes les 2 minutes.",
+        "noDeviceFound": "Aucun appareil Viessmann n'a été trouvé. Si vous êtes certains de posséder un appareil Viessmann supporté par Gladys, avez-vous bien réalisé toutes les étapes de la documentation ?",
+        "noFeaturesFound": "Aucune fonctionnalité trouvée pour cet appareil.",
+        "alreadyCreatedButton": "Déjà créé",
+        "updateButton": "Mettre à jour",
+        "scan": "Scanner",
+        "refresh": "Rafraîchir"
+      },
+      "setup": {
+        "title": "Configuration Viessmann",
+        "description": "Vous pouvez connecter Gladys à votre compte Viessmann pour commander les appareils de chauffage associés.",
+        "descriptionCreateAccount": "Vous avez besoin de créer un compte développeur sur le <a href=\"https://developer.viessmann.com/\" target=\"_blank\" rel=\"noopener noreferrer\">portail développeur Viessmann</a>.",
+        "descriptionCreateApp": "Vous devrez ensuite créer une application dans le portail développeur pour obtenir un Client ID.",
+        "descriptionGetKeys": "Définissez l'URI de redirection à <code>http://localhost:1443/viessmann/callback</code> et copiez le Client ID ci-dessous.",
+        "descriptionRedirectUri": "Important : L'URI de redirection dans votre application Viessmann doit être définie à http://localhost:1443/viessmann/callback",
+        "clientIdLabel": "Identifiant client",
+        "clientIdPlaceholder": "Client ID du portail développeur Viessmann",
+        "connectionInfoLabel": "Lorsque vous modifiez ces informations, un nouveau jeton est requis. La déconnexion effacera également votre jeton d'accès. Une nouvelle demande de connexion sera faite à l'API Viessmann lorsque vous cliquerez sur ces boutons.",
+        "saveLabel": "Sauvegarder et connecter",
+        "disconnectLabel": "Déconnecter"
+      },
+      "error": {
+        "defaultError": "Une erreur s'est produite lors de l'enregistrement de l'appareil.",
+        "defaultDeletionError": "Une erreur s'est produite lors de la suppression de l'appareil.",
+        "conflictError": "L'appareil actuel est déjà dans Gladys."
+      }
     }
   },
   "editScene": {

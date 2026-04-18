@@ -2192,6 +2192,75 @@
       "generateButton": "Generate",
       "keyNameLabel": "Key:",
       "registeredLabel": "Registered on:"
+    },
+    "viessmann": {
+      "title": "Viessmann",
+      "description": "Control Viessmann heating systems",
+      "deviceTab": "Devices",
+      "discoverTab": "Viessmann Discovery",
+      "setupTab": "Setup",
+      "documentation": "Viessmann Documentation",
+      "discoverDeviceDescr": "Automatically scan Viessmann devices",
+      "status": {
+        "notConfigured": "The Viessmann service is not configured",
+        "disconnect": "Gladys is not connected to Viessmann",
+        "notConnected": "Gladys failed to connect to the Viessmann account, please verify your credentials on the ",
+        "setupPageLink": "Viessmann Setup Page.",
+        "connect": "Gladys is connected to Viessmann",
+        "connecting": "Configuration saved. Connecting to your Viessmann account...",
+        "processingToken": "Connecting to your Viessmann account... Retrieving access token.",
+        "getDevicesValues": "Data recovery in progress...",
+        "discoveringDevices": "Device recovery in progress...",
+        "errorConnecting": {
+          "other_error": "Error during authorization. You can inspect the error in your browser's console with a right click. If the error persists, please post the logs on the forum.",
+          "access_denied": "Authorization declined, please try again and accept the request for access to your data.",
+          "invalid_client": "Invalid client ID. Please verify your Viessmann developer account information.",
+          "get_access_token_fail": "Incorrect information entered or account disabled. Please check your Viessmann developer account information."
+        }
+      },
+      "device": {
+        "title": "Viessmann Devices in Gladys",
+        "descriptionInformation": "State retrieval is currently done every 2 minutes.",
+        "noDeviceFound": "No Viessmann devices have been added yet.",
+        "externalIdLabel": "Viessmann device ID",
+        "nameLabel": "Device name",
+        "namePlaceholder": "Enter your device name",
+        "modelLabel": "Model",
+        "roomLabel": "Room",
+        "featuresLabel": "Features",
+        "saveButton": "Save",
+        "deleteButton": "Delete",
+        "noValueReceived": "No value received."
+      },
+      "discover": {
+        "title": "Your Viessmann Devices Compatible with Gladys",
+        "description": "Your Viessmann devices must be configured in your Viessmann account before being added to Gladys. The first discovery is automatic. Press 'Refresh' if you wish to retrieve new devices.",
+        "descriptionInformation": "State retrieval is currently done every 2 minutes.",
+        "noDeviceFound": "No Viessmann devices were found. If you are certain that you have a Viessmann device supported by Gladys, have you completed all the steps in the documentation?",
+        "noFeaturesFound": "No features found for this device.",
+        "alreadyCreatedButton": "Already Created",
+        "updateButton": "Update",
+        "scan": "Scan",
+        "refresh": "Refresh"
+      },
+      "setup": {
+        "title": "Viessmann Setup",
+        "description": "You can connect Gladys to your Viessmann account to control the associated heating devices.",
+        "descriptionCreateAccount": "You need to create a developer account on <a href=\"https://developer.viessmann.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Viessmann Developer Portal</a>.",
+        "descriptionCreateApp": "You will then need to create an application in the developer portal to get a Client ID.",
+        "descriptionGetKeys": "Set the redirect URI to <code>http://localhost:1443/viessmann/callback</code> and copy the Client ID below.",
+        "descriptionRedirectUri": "Important: The redirect URI in your Viessmann application must be set to http://localhost:1443/viessmann/callback",
+        "clientIdLabel": "Client ID",
+        "clientIdPlaceholder": "Client ID from Viessmann Developer Portal",
+        "connectionInfoLabel": "When you change this information, a new token is required. Disconnecting will also erase your access token. A new connection request will be made to the Viessmann API when you click on these buttons.",
+        "saveLabel": "Save and connect",
+        "disconnectLabel": "Disconnect"
+      },
+      "error": {
+        "defaultError": "An error occurred while registering the device.",
+        "defaultDeletionError": "An error occurred while deleting the device.",
+        "conflictError": "The current device is already in Gladys."
+      }
     }
   },
   "editScene": {

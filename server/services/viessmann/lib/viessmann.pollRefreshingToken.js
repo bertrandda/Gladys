@@ -20,7 +20,9 @@ async function refreshViessmannTokens() {
  */
 function pollRefreshingToken() {
   if (this.expireInToken > 0) {
-    this.pollRefreshToken = setInterval(refreshViessmannTokens.bind(this), this.expireInToken * 1000);
+    // Refresh at 90% of expiration time to avoid token expiry during requests
+    const refreshInterval = Math.floor(this.expireInToken * 0.9) * 1000;
+    this.pollRefreshToken = setInterval(refreshViessmannTokens.bind(this), refreshInterval);
   }
 }
 

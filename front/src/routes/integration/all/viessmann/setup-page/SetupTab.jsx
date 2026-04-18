@@ -23,7 +23,7 @@ class SetupTab extends Component {
       });
     } catch (e) {
       await this.setState({
-        viessmannSaveSettingsStatus: RequestStatus.Error
+        viessmannDisconnectStatus: RequestStatus.Error
       });
     }
   }

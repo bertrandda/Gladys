@@ -110,11 +110,11 @@ class DevicePage extends Component {
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.VIESSMANN.STATUS, this.updateStatus);
     this.props.session.dispatcher.removeListener(
       WEBSOCKET_MESSAGE_TYPES.VIESSMANN.ERROR.CONNECTING,
-      this.updateStatus
+      this.updateStatusError
     );
     this.props.session.dispatcher.removeListener(
       WEBSOCKET_MESSAGE_TYPES.VIESSMANN.ERROR.PROCESSING_TOKEN,
-      this.updateStatus
+      this.updateStatusError
     );
   }
 

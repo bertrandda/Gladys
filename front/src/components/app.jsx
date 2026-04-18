@@ -149,6 +149,11 @@ import NetatmoPage from '../routes/integration/all/netatmo/device-page';
 import NetatmoSetupPage from '../routes/integration/all/netatmo/setup-page';
 import NetatmoDiscoverPage from '../routes/integration/all/netatmo/discover-page';
 
+// Viessmann integration
+import ViessmannPage from '../routes/integration/all/viessmann/device-page';
+import ViessmannSetupPage from '../routes/integration/all/viessmann/setup-page';
+import ViessmannDiscoverPage from '../routes/integration/all/viessmann/discover-page';
+
 // Sonos integration
 import SonosDevicePage from '../routes/integration/all/sonos/device-page';
 import SonosDiscoveryPage from '../routes/integration/all/sonos/discover-page';
@@ -328,6 +333,10 @@ const AppRouter = connect(
         <NetatmoPage path="/dashboard/integration/device/netatmo" />
         <NetatmoDiscoverPage path="/dashboard/integration/device/netatmo/discover" />
         <NetatmoSetupPage path="/dashboard/integration/device/netatmo/setup" />
+
+        <ViessmannPage path="/dashboard/integration/device/viessmann" />
+        <ViessmannDiscoverPage path="/dashboard/integration/device/viessmann/discover" />
+        <ViessmannSetupPage path="/dashboard/integration/device/viessmann/setup" />
 
         <SonosDevicePage path="/dashboard/integration/device/sonos" />
         <SonosDiscoveryPage path="/dashboard/integration/device/sonos/discover" />

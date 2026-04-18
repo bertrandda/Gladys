@@ -121,6 +121,12 @@
     "cloud": true
   },
   {
+    "key": "viessmann",
+    "link": "viessmann",
+    "img": "/assets/integrations/cover/viessmann.jpg",
+    "cloud": true
+  },
+  {
     "key": "sonos",
     "link": "sonos",
     "img": "/assets/integrations/cover/sonos.jpg",

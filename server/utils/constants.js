@@ -1532,6 +1532,14 @@ const WEBSOCKET_MESSAGE_TYPES = {
       PROCESSING_TOKEN: 'netatmo.error-processing-token',
     },
   },
+  VIESSMANN: {
+    STATUS: 'viessmann.status',
+    ERROR: {
+      CONNECTED: 'viessmann.error-connected',
+      CONNECTING: 'viessmann.error-connecting',
+      PROCESSING_TOKEN: 'viessmann.error-processing-token',
+    },
+  },
   MELCLOUD: {
     STATUS: 'melcloud.status',
     DISCOVER: 'melcloud.discover',

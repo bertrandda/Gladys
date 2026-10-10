@@ -296,7 +296,7 @@ async function syncUserCalendars(userId) {
       const gladysCalendar = await this.gladys.calendar.get(userId, { externalId: formatedCalendar.external_id });
       // Create calendar if it does not already exist in database
       if (gladysCalendar.length === 0) {
-        if (formatedCalendar.type !== 'CALDAV') {
+        if (formatedCalendar.type !== CALENDAR_TYPES.CALDAV) {
           await this.gladys.calendar.create(formatedCalendar);
           return null;
         }

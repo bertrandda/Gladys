@@ -7,6 +7,10 @@ const { CALENDAR_TYPES } = require('../../../../utils/constants');
 // keeps their future occurrences synchronized long before this time range runs out.
 const RECURRING_EVENTS_REFRESH_INTERVAL_DAYS = 30;
 
+// HTTP status returned by a CalDAV server which does not support a request, as reported by dav-request.
+// A server which does not support a filter must answer 403 (RFC 4791, section 7.7).
+const UNSUPPORTED_REQUEST_ERROR_REGEX = /^Bad status: (400|403|415|501)$/;
+
 /**
  * @description Return the different URLs an event can be saved with in Gladys.
  * Depending on the CalDAV server, the href returned by the sync-collection report
@@ -195,12 +199,13 @@ async function syncEvents(userId, xhr, calDavHost, calendar, syncToken) {
  * @description Compute again the occurrences of the recurring events of a CalDAV calendar,
  * so that they keep covering the synchronized time range even if they are never modified.
  * Only the recurring events are requested to the CalDAV server. If the server does not support
- * this request, every event of the calendar is synchronized instead.
+ * this request, every event of the calendar is synchronized instead. After any other error
+ * (network, server error...), the refresh is skipped and retried at the next synchronization.
  * @param {string} userId - Gladys user, calendar owner.
  * @param {object} xhr - Request with dav credentials.
  * @param {string} calDavHost - CalDAV server host.
  * @param {object} calendar - Gladys calendar to refresh.
- * @returns {Promise} Resolving once the recurring events are refreshed.
+ * @returns {Promise<boolean>} Resolving with true if the recurring events were refreshed.
  * @example
  * refreshRecurringEvents.call(caldavHandler, userId, xhr, CALDAV_HOST, calendar)
  */
@@ -209,11 +214,17 @@ async function refreshRecurringEvents(userId, xhr, calDavHost, calendar) {
   try {
     jsonEvents = await this.requestRecurringEvents(xhr, calendar.external_id);
   } catch (e) {
+    if (!UNSUPPORTED_REQUEST_ERROR_REGEX.test(e.message)) {
+      logger.warn(
+        `CalDAV : unable to request the recurring events of calendar ${calendar.name}, the refresh will be retried at the next synchronization. ${e.message}`,
+      );
+      return false;
+    }
     logger.warn(
-      `CalDAV : unable to request the recurring events of calendar ${calendar.name}, synchronizing all its events instead. ${e.message}`,
+      `CalDAV : the server does not support requesting the recurring events of calendar ${calendar.name}, synchronizing all its events instead. ${e.message}`,
     );
     await syncEvents.call(this, userId, xhr, calDavHost, calendar, null);
-    return;
+    return true;
   }
 
   // A server which does not support the RRULE filter can return every event of the calendar
@@ -233,6 +244,7 @@ async function refreshRecurringEvents(userId, xhr, calDavHost, calendar) {
   logger.info(
     `CalDAV : ${recurringEvents.length} recurring events refreshed (${insertedOrUpdatedEvent} occurrences updated, ${deletedEventCount} occurrences deleted) for calendar ${calendar.name}.`,
   );
+  return true;
 }
 
 /**
@@ -347,17 +359,35 @@ async function syncUserCalendars(userId) {
         await syncEvents.call(this, userId, xhr, CALDAV_HOST, calendarToUpdate, calendarToUpdate.sync_token);
       }
 
+      let recurringEventsRefreshed = fullSync;
       if (calendarToUpdate.refreshRecurringEvents && !fullSync) {
-        await refreshRecurringEvents.call(this, userId, xhr, CALDAV_HOST, calendarToUpdate);
+        // The refresh is a periodic maintenance: if it fails, the changes are still saved & the other
+        // calendars still synchronized, and the refresh is retried at the next synchronization.
+        try {
+          recurringEventsRefreshed = await refreshRecurringEvents.call(
+            this,
+            userId,
+            xhr,
+            CALDAV_HOST,
+            calendarToUpdate,
+          );
+        } catch (e) {
+          logger.warn(
+            `CalDAV : unable to refresh the recurring events of calendar ${calendarToUpdate.name}, the refresh will be retried at the next synchronization.`,
+            e,
+          );
+        }
       }
 
-      if (fullSync || calendarToUpdate.refreshRecurringEvents) {
+      if (recurringEventsRefreshed) {
         newProperties.last_sync = this.dayjs().format();
       }
 
       // Every change was applied, the calendar can now be marked as up to date. Events that could not be
       // formatted keep their previous version: fetching them again at each synchronization would not fix them.
-      await this.gladys.calendar.update(calendarToUpdate.selector, newProperties);
+      if (Object.keys(newProperties).length > 0) {
+        await this.gladys.calendar.update(calendarToUpdate.selector, newProperties);
+      }
     },
     { concurrency: 1 },
   );

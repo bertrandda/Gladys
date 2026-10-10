@@ -938,16 +938,79 @@ describe('CalDAV sync of a calendar with recurring events', () => {
       expect(Object.keys(sync.gladys.calendar.update.args[0][1])).to.eql(['last_sync']);
     });
 
-    it('should not save the refresh date if the recurring events refresh failed', async () => {
+    it('should skip the refresh without a full synchronization after an error other than an unsupported request', async () => {
       sync.gladys.calendar.get.resolves([{ ...heatingCalendar, last_sync: null }]);
-      sync.requestRecurringEvents.rejects(new Error('Bad status: 400'));
-      sync.requestChanges.rejects();
+      sync.requestRecurringEvents.rejects(new Error('Bad status: 500'));
 
-      await expect(sync.syncUserCalendars(userId))
-        .to.be.rejectedWith(Error)
-        .and.eventually.have.nested.property('message.message', 'CALDAV_FAILED_REQUEST_CHANGES');
+      await sync.syncUserCalendars(userId);
 
+      expect(sync.requestChanges.callCount).to.equal(0);
+      // Nothing changed, the refresh date is not saved so the refresh is retried at the next synchronization
       expect(sync.gladys.calendar.update.callCount).to.equal(0);
+    });
+
+    it('should save the changes but not the refresh date if the refresh was skipped', async () => {
+      sync.gladys.calendar.get.resolves([{ ...heatingCalendar, ctag: 'old-ctag', last_sync: null }]);
+      sync.requestChanges.resolves([]);
+      sync.requestRecurringEvents.rejects(new Error('Request timed out after 30000 ms'));
+
+      await sync.syncUserCalendars(userId);
+
+      expect(sync.requestChanges.callCount).to.equal(1);
+      expect(sync.gladys.calendar.update.args[0][1]).to.include({
+        ctag: 'new-ctag',
+        sync_token: 'new-sync-token',
+      });
+      expect(sync.gladys.calendar.update.args[0][1]).to.not.have.property('last_sync');
+    });
+
+    it('should keep synchronizing the other calendars if the recurring events refresh failed', async () => {
+      sync.requestCalendars.resolves([
+        {
+          data: {},
+          url: 'https://caldav.host.com/home/heating',
+          ctag: 'new-ctag',
+          displayName: 'Chauffage',
+          type: 'CALDAV',
+          syncToken: 'new-sync-token',
+        },
+        {
+          data: {},
+          url: 'https://caldav.host.com/home/work',
+          ctag: 'work-new-ctag',
+          displayName: 'Work',
+          type: 'CALDAV',
+          syncToken: 'work-new-sync-token',
+        },
+      ]);
+      sync.gladys.calendar.get
+        .withArgs(userId, { externalId: 'https://caldav.host.com/home/heating' })
+        .resolves([{ ...heatingCalendar, last_sync: null }])
+        .withArgs(userId, { externalId: 'https://caldav.host.com/home/work' })
+        .resolves([
+          {
+            ...heatingCalendar,
+            id: 'work-calendar-id',
+            selector: 'work',
+            name: 'Work',
+            ctag: 'work-old-ctag',
+            sync_token: 'work-old-sync-token',
+            external_id: 'https://caldav.host.com/home/work',
+            last_sync: dayjs().format(),
+          },
+        ]);
+      // The server does not support the request & the full synchronization fallback fails too
+      sync.requestRecurringEvents.rejects(new Error('Bad status: 403'));
+      sync.requestChanges.withArgs(sinon.match.any, sinon.match({ selector: 'chauffage' })).rejects();
+      sync.requestChanges.withArgs(sinon.match.any, sinon.match({ selector: 'work' })).resolves([]);
+
+      await sync.syncUserCalendars(userId);
+
+      // The refresh date of the failed calendar is not saved, the other calendar is synchronized
+      expect(sync.requestChanges.callCount).to.equal(2);
+      expect(sync.gladys.calendar.update.callCount).to.equal(1);
+      expect(sync.gladys.calendar.update.args[0][0]).to.equal('work');
+      expect(sync.gladys.calendar.update.args[0][1]).to.include({ ctag: 'work-new-ctag' });
     });
   });
 });

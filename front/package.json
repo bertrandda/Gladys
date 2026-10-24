@@ -21,7 +21,7 @@
     "start:cypress": "cross-env DEMO_MODE=false WEBSOCKET_URL=ws://localhost:1443 LOCAL_API_URL=http://localhost:1443 vite build --minify false --sourcemap false && sirv build --port 1444 --cors --single",
     "start:cypress:dev": "cross-env DEMO_MODE=false WEBSOCKET_URL=ws://localhost:1443 LOCAL_API_URL=http://localhost:1443 npm start",
     "cypress:open": "cypress open --config-file cypress/cypress.config.js",
-    "cypress:run": "cypress run --config-file cypress/cypress.config.js"
+    "cypress:run": "cypress run --browser chrome --config-file cypress/cypress.config.js"
   },
   "overrides": {
     "esm": "npm:esm-wallaby@3.2.35"

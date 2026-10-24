@@ -1,4 +1,6 @@
-describe('Sign-up', () => {
+// The sign-up steps follow each other on the same page: keep it between tests
+// (testIsolation is on by default since Cypress 12)
+describe('Sign-up', { testIsolation: false }, () => {
   it('Sign-Up - Check   page', () => {
     // Go to home page
     cy.visit('/');
@@ -40,8 +42,8 @@ describe('Sign-up', () => {
   });
 
   it('Create new account - too short password', () => {
-    const { tony } = Cypress.env('users');
-    const language = Cypress.env('language');
+    const { tony } = Cypress.expose('users');
+    const language = Cypress.expose('language');
 
     // Fill form
     cy.get('input:visible').then(inputs => {
@@ -74,7 +76,7 @@ describe('Sign-up', () => {
   });
 
   it('Create new account - not same password', () => {
-    const { tony } = Cypress.env('users');
+    const { tony } = Cypress.expose('users');
 
     // Fill form
     cy.get('input:visible').then(inputs => {
@@ -94,7 +96,7 @@ describe('Sign-up', () => {
   });
 
   it('Create new account - done', () => {
-    const users = Cypress.env('users');
+    const users = Cypress.expose('users');
     const { tony } = users;
 
     // Fill form
@@ -106,7 +108,7 @@ describe('Sign-up', () => {
     });
 
     // Store access token
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',
@@ -135,7 +137,7 @@ describe('Sign-up', () => {
   });
 
   it('Setup house - done', () => {
-    const house = Cypress.env('house');
+    const house = Cypress.expose('house');
 
     // Fill form
     cy.get('input:visible').then(inputs => {
@@ -155,7 +157,7 @@ describe('Sign-up', () => {
     // Add room
     cy.contains('button', 'signup.configureHouse.addRoomButton').click();
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',
@@ -163,9 +165,9 @@ describe('Sign-up', () => {
       },
       req => {
         req.reply(res => {
-          const house = Cypress.env('house');
+          const house = Cypress.expose('house');
           house.rooms[0] = res.body;
-          Cypress.env('house', house);
+          Cypress.expose('house', house);
         });
       }
     );

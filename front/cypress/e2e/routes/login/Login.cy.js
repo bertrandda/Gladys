@@ -21,7 +21,7 @@ describe('Login', () => {
   });
 
   it('Redirects to return_url after login', () => {
-    const { tony } = Cypress.env('users');
+    const { tony } = Cypress.expose('users');
     cy.clearLocalStorage();
     cy.visit(`/login?return_url=${encodeURIComponent('/dashboard/chat')}`);
 
@@ -33,7 +33,7 @@ describe('Login', () => {
   });
 
   it('Ignores a return_url pointing to another domain', () => {
-    const { tony } = Cypress.env('users');
+    const { tony } = Cypress.expose('users');
     cy.clearLocalStorage();
     cy.visit(`/login?return_url=${encodeURIComponent('//example.com')}`);
 

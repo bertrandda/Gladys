@@ -3,8 +3,8 @@ describe('Dashboard Humidity Box', () => {
     cy.login();
 
     // Create dashboard
-    const serverUrl = Cypress.env('serverUrl');
-    const { rooms } = Cypress.env('house');
+    const serverUrl = Cypress.expose('serverUrl');
+    const { rooms } = Cypress.expose('house');
     const roomSelector = rooms[0].selector;
     cy.request({
       method: 'POST',
@@ -96,7 +96,7 @@ describe('Dashboard Humidity Box', () => {
     // Delete all devices
     cy.deleteDevices('example');
     // Delete dashboard
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.request({
       method: 'DELETE',
       url: `${serverUrl}/api/v1/dashboard/test`
@@ -105,14 +105,14 @@ describe('Dashboard Humidity Box', () => {
   it('Should have no value box', () => {
     cy.contains('p', 'dashboard.boxes.humidityInRoom.noHumidityRecorded').should('exist');
 
-    const { rooms } = Cypress.env('house');
+    const { rooms } = Cypress.expose('house');
     const roomName = rooms[0].name;
     cy.contains('small', roomName).should('exist');
   });
 
   it('Should update humidity on update device value', () => {
-    const serverUrl = Cypress.env('serverUrl');
-    const { rooms } = Cypress.env('house');
+    const serverUrl = Cypress.expose('serverUrl');
+    const { rooms } = Cypress.expose('house');
     const roomSelector = rooms[0].selector;
 
     cy.intercept({
@@ -134,7 +134,7 @@ describe('Dashboard Humidity Box', () => {
   });
 
   it('Should not update humidity on update device value', () => {
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
 
     cy.request({
       method: 'POST',

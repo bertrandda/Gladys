@@ -1,8 +1,10 @@
-describe('Zigbee2Mqtt setup wizard remote mode from scratch', () => {
+// The wizard steps follow each other on the page visited in before(): keep it
+// between tests (testIsolation is on by default since Cypress 12)
+describe('Zigbee2Mqtt setup wizard remote mode from scratch', { testIsolation: false }, () => {
   before(() => {
     cy.login();
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'GET',
@@ -52,7 +54,7 @@ describe('Zigbee2Mqtt setup wizard remote mode from scratch', () => {
     // Check no error panel
     cy.get('[data-cy=z2m-setup-save-error]').should('not.exist');
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',
@@ -83,7 +85,7 @@ describe('Zigbee2Mqtt setup wizard remote mode from scratch', () => {
     cy.get('[data-cy=z2m-setup-remote-broker-username-field]').type('admin');
     cy.get('[data-cy=z2m-setup-remote-broker-password-field]').type('test');
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',

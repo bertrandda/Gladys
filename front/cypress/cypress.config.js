@@ -22,16 +22,16 @@ module.exports = defineConfig({
 
       // Load NODE env variables
       const language = process.env.LANGUAGE || 'en';
-      config.env.language = language;
+      config.expose.language = language;
 
       const serverUrl = process.env.LOCAL_API_URL || 'http://localhost:1443';
-      config.env.serverUrl = serverUrl;
+      config.expose.serverUrl = serverUrl;
 
       const websocketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:1443';
-      config.env.websocketUrl = websocketUrl;
+      config.expose.websocketUrl = websocketUrl;
 
       const i18n = require(`../src/config/i18n/${language}.json`);
-      config.env.i18n = i18n;
+      config.expose.i18n = i18n;
 
       return config;
     },
@@ -47,7 +47,7 @@ module.exports = defineConfig({
     defaultCommandTimeout: 30000,
     pageLoadTimeout: 120000,
     baseUrl: 'http://localhost:1444',
-    env: {
+    expose: {
       house: {
         name: 'My House',
         selector: 'my-house',

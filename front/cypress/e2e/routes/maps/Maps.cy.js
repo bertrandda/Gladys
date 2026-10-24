@@ -18,7 +18,7 @@ describe('Maps view', () => {
       cy.wrap(inputs[1]).type(4000);
     });
 
-    const i18n = Cypress.env('i18n');
+    const i18n = Cypress.expose('i18n');
 
     cy.get('#react-select-color-picker').click();
     cy.get('#react-select-color-picker').type(`${i18n.color.green}{enter}`);

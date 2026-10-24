@@ -1,4 +1,6 @@
-describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
+// The wizard steps follow each other on the page visited in before(): keep it
+// between tests (testIsolation is on by default since Cypress 12)
+describe('Zigbee2Mqtt setup wizard local mode from scratch', { testIsolation: false }, () => {
   const SELECTED_DONGLE_NAME = "CircuitSetup's CC2652P2 USB Coordinator";
 
   const selectDongle = () => {
@@ -12,7 +14,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
   before(() => {
     cy.login();
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'GET',
@@ -53,7 +55,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
   });
 
   it('Select local mode', () => {
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'GET',
@@ -126,7 +128,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
     // Enter TCP port
     cy.get('[data-cy=z2m-setup-local-tcp-field]').type('12345');
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',
@@ -165,7 +167,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
     // Enter TCP port
     cy.get('[data-cy=z2m-setup-local-tcp-field]').clear();
 
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'POST',

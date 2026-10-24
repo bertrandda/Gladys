@@ -1,4 +1,7 @@
-describe('Dashboard', () => {
+// The tests after the creation keep editing the dashboard left open by the
+// previous one: keep the page between tests (testIsolation is on by default
+// since Cypress 12)
+describe('Dashboard', { testIsolation: false }, () => {
   // The created dashboard's selector carries 4 random characters (#2906):
   // captured once at creation, reused by the later tests of this spec
   let dashboardSelector;
@@ -12,7 +15,7 @@ describe('Dashboard', () => {
     if (emojiDashboardSelector) {
       cy.request({
         method: 'DELETE',
-        url: `${Cypress.env('serverUrl')}/api/v1/dashboard/${emojiDashboardSelector}`
+        url: `${Cypress.expose('serverUrl')}/api/v1/dashboard/${emojiDashboardSelector}`
       });
       emojiDashboardSelector = null;
     }
@@ -73,7 +76,7 @@ describe('Dashboard', () => {
     cy.get('[data-cy="dashboard-saved-label"]').should('be.visible');
   });
   it('Should map the leading emoji of an icon-less dashboard to an icon in the tab bar', () => {
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     // Created straight through the API without an icon, like every dashboard
     // predating the required icon: the tab bar derives the icon from the
     // leading emoji of the name (🎬 → clapperboard), never renders the emoji

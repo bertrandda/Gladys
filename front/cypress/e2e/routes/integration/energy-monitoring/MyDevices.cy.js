@@ -1,7 +1,7 @@
 // "My devices" tab of the energy monitoring integration (docs/specs/energy-hierarchy.md, section E):
 // the meters and the devices they price, read-only, with a "Meter" select per device.
 describe('Energy monitoring devices', () => {
-  const serverUrl = Cypress.env('serverUrl');
+  const serverUrl = Cypress.expose('serverUrl');
   const TARIFF = {
     tariff_version: 1,
     components: [{ key: 'energy', kind: 'consumption', rules: [], fallback: { price: 0.2 } }]

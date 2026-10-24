@@ -48,7 +48,7 @@ const createDashboard = boxes =>
   cy
     .request({
       method: 'POST',
-      url: `${Cypress.env('serverUrl')}/api/v1/dashboard`,
+      url: `${Cypress.expose('serverUrl')}/api/v1/dashboard`,
       body: {
         name: 'Widget test',
         type: 'main',
@@ -69,7 +69,7 @@ describe('Dashboard integration widget box', () => {
     if (dashboardSelector) {
       cy.request({
         method: 'DELETE',
-        url: `${Cypress.env('serverUrl')}/api/v1/dashboard/${dashboardSelector}`
+        url: `${Cypress.expose('serverUrl')}/api/v1/dashboard/${dashboardSelector}`
       });
       dashboardSelector = null;
     }

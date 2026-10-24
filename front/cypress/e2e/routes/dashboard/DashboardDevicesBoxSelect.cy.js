@@ -6,7 +6,7 @@
 // was erased. The shared Select wrapper now places the menu against the
 // control and the visible viewport alone.
 describe('Dashboard Devices Box select', () => {
-  const serverUrl = Cypress.env('serverUrl');
+  const serverUrl = Cypress.expose('serverUrl');
   // enough features for the full menu to be taller than the room left under
   // a control placed near the bottom of a short screen
   const FEATURE_COUNT = 8;

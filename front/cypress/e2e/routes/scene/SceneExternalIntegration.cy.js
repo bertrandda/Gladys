@@ -48,13 +48,13 @@ const DEVICES = [{ name: 'Front camera', selector: `${SELECTOR}-front`, external
 const getSavedScene = () =>
   cy.window().then(win => {
     const { access_token: accessToken } = JSON.parse(win.localStorage.getItem('user'));
-    const selector = Cypress.env('integrationSceneUrl')
+    const selector = Cypress.expose('integrationSceneUrl')
       .split('/')
       .pop();
     return cy
       .request({
         method: 'GET',
-        url: `${Cypress.env('serverUrl')}/api/v1/scene/${selector}`,
+        url: `${Cypress.expose('serverUrl')}/api/v1/scene/${selector}`,
         headers: { authorization: `Bearer ${accessToken}` }
       })
       .its('body');
@@ -86,17 +86,17 @@ describe('Scene - external integration triggers and actions', () => {
     cy.url().should('include', `${Cypress.config().baseUrl}/dashboard/scene/integration-scene`);
 
     cy.url().then(url => {
-      Cypress.env('integrationSceneUrl', url.replace(Cypress.config().baseUrl, ''));
+      Cypress.expose('integrationSceneUrl', url.replace(Cypress.config().baseUrl, ''));
     });
   });
 
   it('Should add a declared trigger and a declared action, then save the declared shapes', () => {
     // the house created by the account setup
-    const house = Cypress.env('house');
+    const house = Cypress.expose('house');
     cy.intercept('GET', '**/api/v1/external_integration/scene', SCENE_INTEGRATIONS).as('getSceneIntegrations');
     cy.intercept('GET', `**/api/v1/service/${SELECTOR}/device`, DEVICES).as('getDevices');
 
-    const sceneUrl = Cypress.env('integrationSceneUrl');
+    const sceneUrl = Cypress.expose('integrationSceneUrl');
     expect(sceneUrl).to.exist;
     cy.visit(sceneUrl);
     cy.wait('@getSceneIntegrations');
@@ -116,7 +116,7 @@ describe('Scene - external integration triggers and actions', () => {
     // a required filter would fire on every camera), then the information the
     // trigger passes on, named by label (never by path)
     cy.contains('button', 'editScene.saveButton').click();
-    const requiredFieldError = Cypress.env('i18n')
+    const requiredFieldError = Cypress.expose('i18n')
       .editScene.externalIntegration.requiredFieldError.replace('{{field}}', 'Camera')
       .replace('{{title}}', 'Frigate · Object detected');
     cy.get('.alert-danger').should('contain', requiredFieldError);
@@ -170,7 +170,7 @@ describe('Scene - external integration triggers and actions', () => {
       'getSceneIntegrations'
     );
 
-    const sceneUrl = Cypress.env('integrationSceneUrl');
+    const sceneUrl = Cypress.expose('integrationSceneUrl');
     expect(sceneUrl).to.exist;
     cy.visit(sceneUrl);
     cy.wait('@getSceneIntegrations');
@@ -186,7 +186,7 @@ describe('Scene - external integration triggers and actions', () => {
     cy.wait('@getSceneIntegrations');
     cy.get('.alert-danger').should(
       'contain',
-      Cypress.env('i18n').editScene.externalIntegration.catalogUnavailableError
+      Cypress.expose('i18n').editScene.externalIntegration.catalogUnavailableError
     );
   });
 
@@ -199,7 +199,7 @@ describe('Scene - external integration triggers and actions', () => {
     }).as('getSceneIntegrations');
     cy.intercept('GET', `**/api/v1/service/${SELECTOR}/device`, DEVICES).as('getDevices');
 
-    const sceneUrl = Cypress.env('integrationSceneUrl');
+    const sceneUrl = Cypress.expose('integrationSceneUrl');
     expect(sceneUrl).to.exist;
     cy.visit(sceneUrl);
     cy.wait('@getSceneIntegrations');
@@ -216,7 +216,7 @@ describe('Scene - external integration triggers and actions', () => {
   it('Should keep the cards, flagged as orphans, when the integration is gone', () => {
     cy.intercept('GET', '**/api/v1/external_integration/scene', { integrations: [] }).as('getSceneIntegrations');
 
-    const sceneUrl = Cypress.env('integrationSceneUrl');
+    const sceneUrl = Cypress.expose('integrationSceneUrl');
     expect(sceneUrl).to.exist;
     cy.visit(sceneUrl);
     cy.wait('@getSceneIntegrations');
@@ -239,7 +239,7 @@ describe('Scene - external integration triggers and actions', () => {
   });
 
   it('Should delete the scene', () => {
-    const sceneUrl = Cypress.env('integrationSceneUrl');
+    const sceneUrl = Cypress.expose('integrationSceneUrl');
     expect(sceneUrl).to.exist;
     cy.visit(sceneUrl);
 

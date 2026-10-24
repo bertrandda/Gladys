@@ -26,11 +26,11 @@ describe('Scene view', () => {
 
     cy.url().then(url => {
       const relativeUrl = url.replace(Cypress.config().baseUrl, '');
-      Cypress.env('sceneUrl', relativeUrl);
+      Cypress.expose('sceneUrl', relativeUrl);
     });
   });
   it('Should edit the scene settings', () => {
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
 
@@ -59,7 +59,7 @@ describe('Scene view', () => {
   });
 
   it('Should add new condition house empty', () => {
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
     cy.contains('editScene.addStepButton')
@@ -83,7 +83,7 @@ describe('Scene view', () => {
   });
 
   it('Should add new condition device set value', () => {
-    const serverUrl = Cypress.env('serverUrl');
+    const serverUrl = Cypress.expose('serverUrl');
     cy.intercept(
       {
         method: 'GET',
@@ -129,7 +129,7 @@ describe('Scene view', () => {
       []
     ).as('loadAllDevices');
 
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
     cy.contains('editScene.addStepButton')
@@ -157,7 +157,7 @@ describe('Scene view', () => {
   });
 
   it('Should add new calendar event trigger', () => {
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
     cy.contains('editScene.addNewTriggerButton')
@@ -181,7 +181,7 @@ describe('Scene view', () => {
     // on this element, and the checkbox is covered by this element
     cy.get('.custom-switch-indicator').click();
 
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
 
@@ -199,7 +199,7 @@ describe('Scene view', () => {
   });
   it('Should duplicate existing scene', () => {
     cy.login();
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
 
@@ -223,13 +223,13 @@ describe('Scene view', () => {
     cy.url().should('include', `${Cypress.config().baseUrl}/dashboard/scene/my-duplicated-scene`);
     cy.url().then(url => {
       const relativeUrl = url.replace(Cypress.config().baseUrl, '');
-      Cypress.env('duplicatedSceneUrl', relativeUrl);
+      Cypress.expose('duplicatedSceneUrl', relativeUrl);
     });
   });
 
   it('Should delete existing scene', () => {
     cy.login();
-    const sceneUrl = Cypress.env('sceneUrl');
+    const sceneUrl = Cypress.expose('sceneUrl');
     expect(sceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(sceneUrl);
 
@@ -239,7 +239,7 @@ describe('Scene view', () => {
 
     cy.url().should('eq', `${Cypress.config().baseUrl}/dashboard/scene`);
 
-    const duplicatedSceneUrl = Cypress.env('duplicatedSceneUrl');
+    const duplicatedSceneUrl = Cypress.expose('duplicatedSceneUrl');
     expect(duplicatedSceneUrl).to.exist; // Ensure the scene URL is available
     cy.visit(duplicatedSceneUrl);
 

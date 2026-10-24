@@ -1,8 +1,10 @@
 // Contracts tab of the energy monitoring integration (docs/specs/energy-contracts.md 8.2):
 // a manual contract is created through the wizard against the real server, previewed
 // over a synthetic profile (the meter has no consumption), saved, listed and deleted.
-describe('Energy monitoring contracts', () => {
-  const serverUrl = Cypress.env('serverUrl');
+// The page is visited once in before(): keep it between tests (testIsolation is
+// on by default since Cypress 12)
+describe('Energy monitoring contracts', { testIsolation: false }, () => {
+  const serverUrl = Cypress.expose('serverUrl');
   const METER = {
     name: 'Cypress meter',
     external_id: 'cypress-meter',

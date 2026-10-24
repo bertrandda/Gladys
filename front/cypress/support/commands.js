@@ -27,7 +27,7 @@ const cypressWebSockets = [];
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 Cypress.on('window:before:load', window => {
-  const lang = Cypress.env('language');
+  const lang = Cypress.expose('language');
   Object.defineProperty(window.navigator, 'language', { value: lang });
 
   // Track every WebSocket the app opens so tests can push fake messages with cy.sendWebSocket.
@@ -53,26 +53,27 @@ Cypress.on('window:before:load', window => {
   };
 });
 
-// i18n handler
-Cypress.Commands.overwrite('contains', (originalFn, subject, filter, text, options = {}) => {
+// i18n handler: `contains` is a query since Cypress 12, so it can only be
+// overwritten with overwriteQuery (the subject is passed to the returned function)
+Cypress.Commands.overwriteQuery('contains', function contains(originalFn, filter, text, options = {}) {
   // determine if a filter argument was passed
   if (typeof text === 'object') {
     options = text;
     text = filter;
-    filter = undefined;
+    filter = '';
   } else if (text === undefined) {
     text = filter;
-    filter = undefined;
+    filter = '';
   }
 
-  const i18n = Cypress.env('i18n');
+  const i18n = Cypress.expose('i18n');
   const value = get(i18n, text, { default: text });
 
-  return originalFn(subject, filter, value, options);
+  return originalFn.call(this, filter, value, options);
 });
 
 Cypress.Commands.add('i18n', { prevSubject: 'element' }, (element, labelKey) => {
-  const i18n = Cypress.env('i18n');
+  const i18n = Cypress.expose('i18n');
   const value = get(i18n, labelKey);
 
   return cy.get(element).should('contain', value);
@@ -80,7 +81,7 @@ Cypress.Commands.add('i18n', { prevSubject: 'element' }, (element, labelKey) => 
 
 // login
 Cypress.Commands.add('login', () => {
-  const serverUrl = Cypress.env('serverUrl');
+  const serverUrl = Cypress.expose('serverUrl');
   cy.task('loadVariable', 'tony').then(tony => {
     if (tony && tony.access_token) {
       cy.log(`Uses stored Tony's token`);
@@ -103,8 +104,8 @@ Cypress.Commands.add('login', () => {
 
 // login
 Cypress.Commands.add('onlyLogin', () => {
-  const serverUrl = Cypress.env('serverUrl');
-  const users = Cypress.env('users');
+  const serverUrl = Cypress.expose('serverUrl');
+  const users = Cypress.expose('users');
   const { tony } = users;
 
   cy.log('Login with Tony');
@@ -125,10 +126,10 @@ Cypress.Commands.add('onlyLogin', () => {
 });
 
 Cypress.Commands.add('setupAccount', () => {
-  const house = Cypress.env('house');
-  const serverUrl = Cypress.env('serverUrl');
-  const users = Cypress.env('users');
-  const language = Cypress.env('language');
+  const house = Cypress.expose('house');
+  const serverUrl = Cypress.expose('serverUrl');
+  const users = Cypress.expose('users');
+  const language = Cypress.expose('language');
   const { tony } = users;
 
   cy.log('Setup Gladys');
@@ -168,9 +169,9 @@ Cypress.Commands.add('setupAccount', () => {
           authorization: `Bearer ${accessToken}`
         }
       }).then(res => {
-        const house = Cypress.env('house');
+        const house = Cypress.expose('house');
         house.rooms[0] = res.body;
-        Cypress.env('house', house);
+        Cypress.expose('house', house);
       });
     });
   });
@@ -190,7 +191,7 @@ Cypress.Commands.overwrite('request', (originalFn, options) => {
 Cypress.Commands.add('sendWebSocket', payload => {
   // Only target the Gladys websocket: the Vite dev server also opens a websocket
   // (HMR) on the front origin, which must never receive fake Gladys messages.
-  const websocketUrl = Cypress.env('websocketUrl');
+  const websocketUrl = Cypress.expose('websocketUrl');
   cypressWebSockets
     .filter(ws => ws.url && ws.url.startsWith(websocketUrl) && typeof ws.onmessage === 'function')
     .forEach(ws => ws.onmessage({ data: JSON.stringify(payload) }));
@@ -199,7 +200,7 @@ Cypress.Commands.add('sendWebSocket', payload => {
 // Clean all devices according to a single service
 Cypress.Commands.add('deleteDevices', service => {
   // Reset all Bluetooth devices
-  const serverUrl = Cypress.env('serverUrl');
+  const serverUrl = Cypress.expose('serverUrl');
   cy.request({
     method: 'GET',
     url: `${serverUrl}/api/v1/device`,
@@ -219,7 +220,7 @@ Cypress.Commands.add('deleteDevices', service => {
 
 // Create device for a service
 Cypress.Commands.add('createDevice', (device, service) => {
-  const serverUrl = Cypress.env('serverUrl');
+  const serverUrl = Cypress.expose('serverUrl');
 
   // Get service
   cy.request({

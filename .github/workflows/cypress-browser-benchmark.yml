@@ -12,44 +12,14 @@ permissions:
   contents: read
 
 jobs:
-  ci-validation:
-    name: CI command (npm run cypress:run)
-    runs-on: ubuntu-22.04
-    steps:
-      - name: ⬇️ Checkout code
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-      - name: 💽 Setup nodejs
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: 'front/package.json'
-      - name: 💽 Install System Dependencies
-        run: |
-          sudo apt update
-          sudo apt-get install -y libudev-dev sqlite3 openssl python-is-python3
-      - name: 📦 Install NPM packages
-        run: |
-          npm ci && npm run install-server:dev
-      - name: ✅ Cypress run
-        uses: cypress-io/github-action@c541a95ea92d9239347a2355f2e895cd4b3f8060 # v7.4.6
-        with:
-          install: false
-          start: npm run start:cypress
-          wait-on: 'http://localhost:1444'
-          wait-on-timeout: 300
-          config-file: ./front/cypress/cypress.config.js
-          project: ./front
-          command: npm run cypress:run
-
   cypress-run:
     name: Cypress ${{ matrix.browser }} - run ${{ matrix.run }}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        browser: [electron, chrome]
-        run: [1, 2, 3, 4, 5, 6, 7, 8]
+        browser: [chrome]
+        run: [1, 2, 3, 4, 5, 6]
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v3
@@ -130,6 +100,13 @@ jobs:
                   current['cypress'] = (int(mins.group(1)) * 60 if mins else 0) + (int(secs.group(1)) if secs else 0) + (int(ms.group(1)) / 1000 if ms else 0)
               if 'Run Finished' in line and current:
                   current['end'] = t
+              # keep the failure details printed by mocha before the results box
+              if re.match(r'^\s+\d+ failing$', line) and current:
+                  current['errors'] = []
+              elif '(Results)' in line and current and isinstance(current.get('errors'), list):
+                  current['errors'] = ' '.join(' '.join(current['errors']).split())[:1500]
+              elif current and isinstance(current.get('errors'), list):
+                  current['errors'].append(line.strip())
           startup = round(specs[0]['start'] - start, 1) if specs else None
           for i, s in enumerate(specs):
               s['wall'] = round((specs[i + 1]['start'] if i + 1 < len(specs) else s.get('end', end)) - s.pop('start'), 1)

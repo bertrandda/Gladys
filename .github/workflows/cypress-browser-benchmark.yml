@@ -13,13 +13,15 @@ permissions:
 
 jobs:
   cypress-run:
-    name: Cypress ${{ matrix.browser }} - run ${{ matrix.run }}
+    name: Cypress ${{ matrix.variant }} - run ${{ matrix.run }}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome]
-        run: [1, 2, 3, 4, 5, 6]
+        # chrome-http1 = Chrome on the legacy network path of Electron
+        # (forceHttp1), to tell the browser from the Cypress 16 native network
+        variant: [electron, chrome-http1]
+        run: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v3
@@ -55,7 +57,7 @@ jobs:
                   sys.stdout.write(line)
                   sys.stdout.flush()
           EOF
-          npx cypress run --config-file cypress/cypress.config.js --browser ${{ matrix.browser }} 2>&1 | python3 -u "$RUNNER_TEMP/stamp.py" "$RUNNER_TEMP/cypress.log"
+          npx cypress run --config-file cypress/cypress.config.js ${{ matrix.variant == 'electron' && '--browser electron' || '--browser chrome --config forceHttp1=true' }} 2>&1 | python3 -u "$RUNNER_TEMP/stamp.py" "$RUNNER_TEMP/cypress.log"
       - name: 📊 Timings
         if: always()
         run: |
@@ -113,7 +115,11 @@ jobs:
               s.pop('end', None)
           out = {'version': version, 'browser': browser, 'wall': round(end - start, 1), 'startup': startup, 'specs': specs,
                  'tests': sum(s.get('tests', 0) for s in specs), 'failing': sum(s.get('failing', 0) for s in specs)}
+          # annotations are cut at 4096 characters: the failures go in their own
+          errors = {s['spec']: s.pop('errors')[:600] for s in specs if s.get('errors')}
           print(json.dumps(out, indent=1))
           print('::notice title=cypress-benchmark::' + json.dumps(out, separators=(',', ':')))
+          for spec, error in errors.items():
+              print('::notice title=cypress-error::' + json.dumps({'spec': spec, 'error': error}))
           EOF
           python3 "$RUNNER_TEMP/timings.py" "$RUNNER_TEMP/cypress.log"

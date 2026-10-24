@@ -1,0 +1,54 @@
+# TEMPORARY: compares the Cypress run of master (Cypress 10.11.0) with the
+# upgrade branch (Cypress 16.2.0) on identical runners. Same steps as the
+# "Cypress run" job of docker-pr-build.yml, without the dependencies cache so
+# every run starts from the same state. To be removed before merging.
+name: Cypress upgrade benchmark
+
+on:
+  push:
+    branches: ['claude/zen-franklin-522ojt']
+
+permissions:
+  contents: read
+
+jobs:
+  cypress-run:
+    name: Cypress ${{ matrix.version }} - run ${{ matrix.run }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [before, after]
+        run: [1, 2, 3]
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          # before = master at the base of the branch, after = this branch
+          ref: ${{ matrix.version == 'before' && 'a5d8b8c89a46582d5ef6ba817f609d76235063e8' || github.sha }}
+      - name: 💽 Setup nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'front/package.json'
+      - name: 💽 Install System Dependencies
+        run: |
+          sudo apt update
+          sudo apt-get install -y libudev-dev sqlite3 openssl python-is-python3
+      - name: 📦 Install NPM packages
+        run: |
+          npm ci && npm run install-server:dev
+      - name: ℹ️ Cypress version
+        working-directory: ./front
+        run: |
+          npx cypress version
+      - name: ✅ Cypress run
+        uses: cypress-io/github-action@c541a95ea92d9239347a2355f2e895cd4b3f8060 # v7.4.6
+        with:
+          install: false
+          start: npm run start:cypress
+          wait-on: 'http://localhost:1444'
+          wait-on-timeout: 300
+          config-file: ./front/cypress/cypress.config.js
+          project: ./front
+          command: npm run cypress:run

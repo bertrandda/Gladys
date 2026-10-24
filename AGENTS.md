@@ -107,8 +107,6 @@ npm run build                  # required before opening the PR
 npm run cypress:run   # starts server + front, then runs E2E specs in front/cypress/
 ```
 
-- Cypress runs the specs in **Chrome**, like the CI (Electron is deprecated since Cypress 16), so Chrome must be installed. Without it, pick another installed browser: `cd front && npx cypress run --config-file cypress/cypress.config.js --browser chromium` (or `electron`).
-
 ### Common CI failure causes
 
 - **Prettier:** CI uses `prettier-check` (read-only). Run `npm run prettier` locally to auto-fix formatting before pushing.

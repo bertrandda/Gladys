@@ -15,13 +15,22 @@ jobs:
   cypress-run:
     name: Cypress ${{ matrix.variant }} - run ${{ matrix.run }}
     runs-on: ubuntu-22.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        # chrome-http1 = Chrome on the legacy network path of Electron
-        # (forceHttp1), to tell the browser from the Cypress 16 native network
-        variant: [electron, chrome-http1]
-        run: [1, 2, 3, 4, 5, 6, 7, 8]
+        # Chromium-family variants, to find which part makes Chrome fail
+        variant: [chrome-headed, chrome-nomem, edge, chromium]
+        run: [1, 2, 3]
+        include:
+          - variant: chrome-headed
+            args: --browser chrome --headed
+          - variant: chrome-nomem
+            args: --browser chrome --config manageBrowserMemory=false
+          - variant: edge
+            args: --browser edge
+          - variant: chromium
+            args: --browser chromium
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v3
@@ -38,6 +47,10 @@ jobs:
       - name: 📦 Install NPM packages
         run: |
           npm ci && npm run install-server:dev
+      - name: ℹ️ Installed browsers
+        working-directory: ./front
+        run: |
+          npx cypress info | grep -A40 -i "browsers found" || true
       - name: 🚀 Start server and front
         run: |
           nohup npm run start:cypress > "$RUNNER_TEMP/start.log" 2>&1 &
@@ -57,7 +70,7 @@ jobs:
                   sys.stdout.write(line)
                   sys.stdout.flush()
           EOF
-          npx cypress run --config-file cypress/cypress.config.js ${{ matrix.variant == 'electron' && '--browser electron' || '--browser chrome --config forceHttp1=true' }} 2>&1 | python3 -u "$RUNNER_TEMP/stamp.py" "$RUNNER_TEMP/cypress.log"
+          npx cypress run --config-file cypress/cypress.config.js ${{ matrix.args }} 2>&1 | python3 -u "$RUNNER_TEMP/stamp.py" "$RUNNER_TEMP/cypress.log"
       - name: 📊 Timings
         if: always()
         run: |

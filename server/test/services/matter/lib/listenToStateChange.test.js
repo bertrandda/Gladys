@@ -33,7 +33,16 @@ const { expect } = require('chai');
 
 const { fake, assert } = sinon;
 
-const { EVENTS, STATE, BUTTON_STATUS, FAN_MODE, AC_MODE, LOCK } = require('../../../../utils/constants');
+const {
+  EVENTS,
+  STATE,
+  BUTTON_STATUS,
+  FAN_MODE,
+  AC_MODE,
+  LOCK,
+  THERMOSTAT_MODE,
+  THERMOSTAT_OPERATING_STATE,
+} = require('../../../../utils/constants');
 
 const MatterHandler = require('../../../../services/matter/lib');
 
@@ -139,6 +148,9 @@ describe('Matter.listenToStateChange', () => {
       addLongReleaseEventListener: (callback) => {
         callback();
       },
+      addMultiPressCompleteEventListener: (callback) => {
+        callback({ totalNumberOfPressesCounted: 2 });
+      },
     };
     const device = {
       number: 1,
@@ -161,6 +173,24 @@ describe('Matter.listenToStateChange', () => {
       device_feature_external_id: 'matter:1234:1:59:click',
       state: BUTTON_STATUS.LONG_RELEASE,
     });
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: 'matter:1234:1:59:click',
+      state: BUTTON_STATUS.DOUBLE_CLICK,
+    });
+  });
+  it('should not emit a multi-press event for a single press', async () => {
+    const clusterClient = {
+      id: Switch.Complete.id,
+      addMultiPressCompleteEventListener: (callback) => {
+        callback({ totalNumberOfPressesCounted: 1 });
+      },
+    };
+    const device = {
+      number: 1,
+      getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
+    };
+    await matterHandler.listenToStateChange(1234n, '1', device);
+    assert.notCalled(gladys.event.emit);
   });
   it('should listen to state change (Occupancy = true)', async () => {
     const clusterClient = {
@@ -391,6 +421,10 @@ describe('Matter.listenToStateChange', () => {
       addOccupiedHeatingSetpointAttributeListener: (callback) => {
         callback(2000);
       },
+      addSystemModeAttributeListener: (callback) => {
+        callback(0); // Off
+        callback(7); // FanOnly, no thermostat mode equivalent
+      },
     };
     const device = {
       number: 1,
@@ -401,6 +435,52 @@ describe('Matter.listenToStateChange', () => {
       device_feature_external_id: 'matter:1234:1:513:heating',
       state: 20,
     });
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: 'matter:1234:1:513:thermostat-mode',
+      state: THERMOSTAT_MODE.OFF,
+    });
+    // Heating setpoint + Off mode only: FanOnly is ignored
+    assert.calledTwice(gladys.event.emit);
+  });
+  it('should listen to state change (Thermostat running state)', async () => {
+    const clusterClient = {
+      id: Thermostat.Complete.id,
+      supportedFeatures: {},
+      isAttributeSupportedByName: (name) => name === 'thermostatRunningState',
+      getLocalTemperatureAttribute: fake.resolves(null),
+      getThermostatRunningStateAttribute: fake.resolves(null),
+      addLocalTemperatureAttributeListener: fake.returns(null),
+      addThermostatRunningStateAttributeListener: (callback) => {
+        callback({ heat: true });
+        callback(null);
+      },
+    };
+    const device = {
+      number: 1,
+      getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
+    };
+    await matterHandler.listenToStateChange(1234n, '1', device);
+    assert.calledOnceWithExactly(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: 'matter:1234:1:513:operating-state',
+      state: THERMOSTAT_OPERATING_STATE.HEATING,
+    });
+  });
+  it('should not listen to Thermostat running state when the attribute is not supported', async () => {
+    const addThermostatRunningStateAttributeListener = fake.returns(null);
+    const clusterClient = {
+      id: Thermostat.Complete.id,
+      supportedFeatures: {},
+      isAttributeSupportedByName: () => false,
+      getLocalTemperatureAttribute: fake.resolves(null),
+      addLocalTemperatureAttributeListener: fake.returns(null),
+      addThermostatRunningStateAttributeListener,
+    };
+    const device = {
+      number: 1,
+      getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
+    };
+    await matterHandler.listenToStateChange(1234n, '1', device);
+    assert.notCalled(addThermostatRunningStateAttributeListener);
   });
   it('should listen to state change (Thermostat local temperature)', async () => {
     const clusterClient = {
@@ -1060,6 +1140,24 @@ describe('Matter.listenToStateChange', () => {
     assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
       device_feature_external_id: 'matter:1234:2:47:battery',
       state: 75,
+    });
+  });
+  it('should listen to state change (PowerSource battery charge level)', async () => {
+    const clusterClient = {
+      id: PowerSource.Complete.id,
+      addBatChargeLevelAttributeListener: (callback) => {
+        callback(PowerSource.BatChargeLevel.Warning);
+        callback(null);
+      },
+    };
+    const device = {
+      number: 2,
+      getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
+    };
+    await matterHandler.listenToStateChange(1234n, '2', device);
+    assert.calledOnceWithExactly(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: 'matter:1234:2:47:battery-low',
+      state: 1,
     });
   });
 });

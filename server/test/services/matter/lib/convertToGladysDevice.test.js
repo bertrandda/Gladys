@@ -21,7 +21,7 @@ const {
   matterExternalIdToSelector,
 } = require('../../../../services/matter/utils/convertToGladysDevice');
 const { MATTER_LIGHT_DEVICE_TYPE } = require('../../../../services/matter/utils/lightMatterMapping');
-const { AC_MODE, LOCK } = require('../../../../utils/constants');
+const { AC_MODE, LOCK, THERMOSTAT_MODE, THERMOSTAT_OPERATING_STATE } = require('../../../../utils/constants');
 
 describe('Matter.convertToGladysDevice', () => {
   const serviceId = 'service-1';
@@ -387,7 +387,7 @@ describe('Matter.convertToGladysDevice', () => {
 
     const gladysDevice = await convertToGladysDevice(serviceId, nodeId, device, basicInformation, '2');
 
-    expect(gladysDevice.features).to.have.lengthOf(1);
+    expect(gladysDevice.features).to.have.lengthOf(2);
     expect(gladysDevice.features[0]).to.deep.equal({
       name: 'PowerSource - 2 (Battery)',
       selector: gladysDevice.features[0].selector,
@@ -400,6 +400,42 @@ describe('Matter.convertToGladysDevice', () => {
       min: 0,
       max: 100,
     });
+    expect(gladysDevice.features[1]).to.deep.equal({
+      name: 'PowerSource - 2 (Battery low)',
+      selector: gladysDevice.features[1].selector,
+      category: 'battery-low',
+      type: 'binary',
+      read_only: true,
+      has_feedback: true,
+      external_id: 'matter:12345:2:47:battery-low',
+      min: 0,
+      max: 1,
+    });
+  });
+
+  it('should only create the battery-low feature when the battery percentage is not supported', async () => {
+    const clusterClient = {
+      id: PowerSource.Complete.id,
+      name: 'PowerSource',
+      endpointId: 2,
+      supportedFeatures: {
+        battery: true,
+      },
+      isAttributeSupportedByName: (name) => name !== 'batPercentRemaining',
+    };
+
+    const device = {
+      name: 'Door sensor',
+      number: 2,
+      getAllClusterClients: () => [clusterClient],
+      getChildEndpoints: () => [],
+    };
+
+    const gladysDevice = await convertToGladysDevice(serviceId, nodeId, device, basicInformation, '2');
+
+    expect(gladysDevice.features.map((feature) => feature.external_id)).to.deep.equal([
+      'matter:12345:2:47:battery-low',
+    ]);
   });
 
   it('should not create battery feature for PowerSource cluster without battery support', async () => {
@@ -600,8 +636,68 @@ describe('Matter.convertToGladysDevice', () => {
 
     const gladysDevice = await convertToGladysDevice(serviceId, nodeId, device, basicInformation, '1:child_endpoint:4');
 
-    const modeFeatures = gladysDevice.features.filter((feature) => feature.type === 'mode');
-    expect(modeFeatures).to.have.lengthOf(0);
+    const acModeFeatures = gladysDevice.features.filter(
+      (feature) => feature.category === 'air-conditioning' && feature.type === 'mode',
+    );
+    expect(acModeFeatures).to.have.lengthOf(0);
+  });
+
+  it('should create a thermostat mode feature and read the setpoint limits of a heating-only thermostat', async () => {
+    const clusterClient = {
+      id: Thermostat.Complete.id,
+      name: 'Thermostat',
+      endpointId: 4,
+      supportedFeatures: {
+        heating: true,
+        autoMode: true,
+      },
+      isAttributeSupportedByName: () => true,
+      getMinHeatSetpointLimitAttribute: async () => 500,
+      getMaxHeatSetpointLimitAttribute: async () => 2800,
+    };
+
+    const device = {
+      name: 'Radiator',
+      number: 4,
+      getAllClusterClients: () => [clusterClient],
+      getChildEndpoints: () => [],
+    };
+
+    const gladysDevice = await convertToGladysDevice(serviceId, nodeId, device, basicInformation, '4');
+
+    const heating = gladysDevice.features.find((feature) => feature.external_id === 'matter:12345:4:513:heating');
+    expect(heating).to.include({ min: 5, max: 28 });
+    const mode = gladysDevice.features.find((feature) => feature.external_id === 'matter:12345:4:513:thermostat-mode');
+    expect(mode).to.deep.equal({
+      name: 'Thermostat - 4 (Mode)',
+      selector: mode.selector,
+      category: 'thermostat',
+      type: 'mode',
+      read_only: false,
+      has_feedback: true,
+      external_id: 'matter:12345:4:513:thermostat-mode',
+      min: THERMOSTAT_MODE.OFF,
+      max: THERMOSTAT_MODE.AUTO,
+      supported_options: [
+        { value: THERMOSTAT_MODE.OFF, label: 'Off' },
+        { value: THERMOSTAT_MODE.HEATING, label: 'Heat' },
+        { value: THERMOSTAT_MODE.AUTO, label: 'Auto' },
+      ],
+    });
+    const operatingState = gladysDevice.features.find(
+      (feature) => feature.external_id === 'matter:12345:4:513:operating-state',
+    );
+    expect(operatingState).to.deep.equal({
+      name: 'Thermostat - 4 (Operating state)',
+      selector: operatingState.selector,
+      category: 'thermostat',
+      type: 'operating-state',
+      read_only: true,
+      has_feedback: true,
+      external_id: 'matter:12345:4:513:operating-state',
+      min: THERMOSTAT_OPERATING_STATE.IDLE,
+      max: THERMOSTAT_OPERATING_STATE.COOLING,
+    });
   });
 
   it('should create lock features for DoorLock cluster', async () => {

@@ -15,6 +15,7 @@ const {
   FAN_MODE,
   FAN_AIRFLOW_DIRECTION,
   LOCK,
+  THERMOSTAT_MODE,
 } = require('../../../../utils/constants');
 
 describe('Matter.setValue', () => {
@@ -531,6 +532,81 @@ describe('Matter.setValue', () => {
 
     await matterHandler.setValue(gladysDevice, gladysFeature, value);
     assert.calledWith(clusterClient.setOccupiedCoolingSetpointAttribute, value * 100);
+  });
+  it('should round a thermostat target temperature to an integer number of 0.01 °C', async () => {
+    const gladysDevice = {
+      external_id: 'matter:12345:1',
+    };
+    const gladysFeature = {
+      category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
+      type: DEVICE_FEATURE_TYPES.THERMOSTAT.TARGET_TEMPERATURE,
+    };
+    const clusterClient = {
+      setOccupiedHeatingSetpointAttribute: fake.resolves(null),
+    };
+    matterHandler.nodesMap.set(12345n, {
+      isConnected: true,
+      getDevices: fake.returns([
+        {
+          number: 1,
+          getClusterClientById: (id) => (id === 513 ? clusterClient : null),
+          getChildEndpoints: () => [],
+        },
+      ]),
+    });
+
+    // 19.1 * 100 = 1910.0000000000002 in floating point
+    await matterHandler.setValue(gladysDevice, gladysFeature, 19.1);
+    assert.calledWith(clusterClient.setOccupiedHeatingSetpointAttribute, 1910);
+  });
+  it('should return an error if the device does not support the Thermostat cluster (heating)', async () => {
+    const gladysDevice = {
+      external_id: 'matter:12345:1',
+    };
+    const gladysFeature = {
+      category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
+      type: DEVICE_FEATURE_TYPES.THERMOSTAT.TARGET_TEMPERATURE,
+    };
+    matterHandler.nodesMap.set(12345n, {
+      isConnected: true,
+      getDevices: fake.returns([
+        {
+          number: 1,
+          getClusterClientById: () => null,
+          getChildEndpoints: () => [],
+        },
+      ]),
+    });
+
+    const promise = matterHandler.setValue(gladysDevice, gladysFeature, 20);
+    await chaiAssert.isRejected(promise, 'Device does not support Thermostat cluster');
+  });
+  it('should control a thermostat mode', async () => {
+    const gladysDevice = {
+      external_id: 'matter:12345:1',
+    };
+    const gladysFeature = {
+      category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
+      type: DEVICE_FEATURE_TYPES.THERMOSTAT.MODE,
+      external_id: 'matter:12345:1:513:thermostat-mode',
+    };
+    const clusterClient = {
+      setSystemModeAttribute: fake.resolves(null),
+    };
+    matterHandler.nodesMap.set(12345n, {
+      isConnected: true,
+      getDevices: fake.returns([
+        {
+          number: 1,
+          getClusterClientById: (id) => (id === 513 ? clusterClient : null),
+          getChildEndpoints: () => [],
+        },
+      ]),
+    });
+
+    await matterHandler.setValue(gladysDevice, gladysFeature, THERMOSTAT_MODE.OFF);
+    // Matter SystemMode Off = 0
+    assert.calledWith(clusterClient.setSystemModeAttribute, 0);
   });
   it('should control an air conditioning mode', async () => {
     const gladysDevice = {

@@ -30,7 +30,13 @@ const {
 const logger = require('../../../utils/logger');
 const { matterFanModeToGladys, matterAttributeToNumber } = require('../utils/fanMatterMapping');
 const { matterLockStateToGladys, matterLockStateToGladysBinary } = require('../utils/doorLockMatterMapping');
-const { matterSystemModeToGladysAcMode } = require('../utils/thermostatMatterMapping');
+const {
+  matterSystemModeToGladysAcMode,
+  matterSystemModeToGladysThermostatMode,
+  matterRunningStateToGladysOperatingState,
+  isAttributeSupported,
+} = require('../utils/thermostatMatterMapping');
+const { matterBatChargeLevelToGladysBatteryLow } = require('../utils/powerSourceMatterMapping');
 const { hsbToRgb, rgbToInt } = require('../../../utils/colors');
 const { EVENTS, STATE } = require('../../../utils/constants');
 const {
@@ -231,6 +237,21 @@ async function readInitialDeviceStates(nodeId, devicePath, device) {
         );
       }
     }
+    if (thermostat.supportedFeatures.heating && !thermostat.supportedFeatures.cooling) {
+      // Heating-only thermostats expose their system mode (including Off) as a thermostat mode
+      const systemMode = await safeReadAttribute(() => thermostat.getSystemModeAttribute());
+      emitState(
+        `matter:${nodeId}:${devicePath}:${Thermostat.Complete.id}:thermostat-mode`,
+        matterSystemModeToGladysThermostatMode(systemMode),
+      );
+    }
+    if (isAttributeSupported(thermostat, 'thermostatRunningState', false)) {
+      const runningState = await safeReadAttribute(() => thermostat.getThermostatRunningStateAttribute());
+      emitState(
+        `matter:${nodeId}:${devicePath}:${Thermostat.Complete.id}:operating-state`,
+        matterRunningStateToGladysOperatingState(runningState),
+      );
+    }
   }
 
   const electricalPowerMeasurement = device.getClusterClientById(ElectricalPowerMeasurement.Complete.id);
@@ -376,6 +397,13 @@ async function readInitialDeviceStates(nodeId, devicePath, device) {
       emitState(
         `matter:${nodeId}:${devicePath}:${PowerSource.Complete.id}:battery`,
         value !== null ? Math.round(value / 2) : null,
+      );
+    }
+    if (powerSource.getBatChargeLevelAttribute) {
+      const batChargeLevel = await safeReadAttribute(() => powerSource.getBatChargeLevelAttribute());
+      emitState(
+        `matter:${nodeId}:${devicePath}:${PowerSource.Complete.id}:battery-low`,
+        matterBatChargeLevelToGladysBatteryLow(batChargeLevel),
       );
     }
   }

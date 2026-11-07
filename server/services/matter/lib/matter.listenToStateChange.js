@@ -31,7 +31,14 @@ const {
 const logger = require('../../../utils/logger');
 const { matterFanModeToGladys, matterAttributeToNumber } = require('../utils/fanMatterMapping');
 const { matterLockStateToGladys, matterLockStateToGladysBinary } = require('../utils/doorLockMatterMapping');
-const { matterSystemModeToGladysAcMode } = require('../utils/thermostatMatterMapping');
+const {
+  matterSystemModeToGladysAcMode,
+  matterSystemModeToGladysThermostatMode,
+  matterRunningStateToGladysOperatingState,
+  isAttributeSupported,
+} = require('../utils/thermostatMatterMapping');
+const { matterPressCountToButtonStatus } = require('../utils/switchMatterMapping');
+const { matterBatChargeLevelToGladysBatteryLow } = require('../utils/powerSourceMatterMapping');
 const { hsbToRgb, rgbToInt } = require('../../../utils/colors');
 const { EVENTS, STATE, BUTTON_STATUS } = require('../../../utils/constants');
 const {
@@ -121,6 +128,20 @@ async function listenToStateChange(nodeId, devicePath, device) {
           device_feature_external_id: `matter:${nodeId}:${devicePath}:${Switch.Complete.id}:click`,
           state: BUTTON_STATUS.LONG_RELEASE,
         });
+      });
+    }
+
+    // Double, triple... clicks, on buttons supporting multi-press (MSM feature)
+    if (switchCluster.addMultiPressCompleteEventListener) {
+      switchCluster.addMultiPressCompleteEventListener((event) => {
+        const buttonStatus = matterPressCountToButtonStatus(event && event.totalNumberOfPressesCounted);
+        logger.debug(`Matter: Switch multiPressComplete event, button status ${buttonStatus}`);
+        if (buttonStatus !== null) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+            device_feature_external_id: `matter:${nodeId}:${devicePath}:${Switch.Complete.id}:click`,
+            state: buttonStatus,
+          });
+        }
       });
     }
   }
@@ -413,6 +434,34 @@ async function listenToStateChange(nodeId, devicePath, device) {
         }
       });
     }
+    // Heating-only thermostats expose their system mode (including Off) as a thermostat mode
+    if (thermostat.supportedFeatures.heating && !thermostat.supportedFeatures.cooling) {
+      thermostat.addSystemModeAttributeListener((value) => {
+        logger.debug(`Matter: Thermostat systemMode attribute changed to ${value}`);
+        const gladysThermostatMode = matterSystemModeToGladysThermostatMode(value);
+        if (gladysThermostatMode !== null) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+            device_feature_external_id: `matter:${nodeId}:${devicePath}:${Thermostat.Complete.id}:thermostat-mode`,
+            state: gladysThermostatMode,
+          });
+        }
+      });
+    }
+    if (
+      thermostat.addThermostatRunningStateAttributeListener &&
+      isAttributeSupported(thermostat, 'thermostatRunningState', false)
+    ) {
+      thermostat.addThermostatRunningStateAttributeListener((value) => {
+        const operatingState = matterRunningStateToGladysOperatingState(value);
+        logger.debug(`Matter: Thermostat thermostatRunningState attribute changed to ${operatingState}`);
+        if (operatingState !== null) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+            device_feature_external_id: `matter:${nodeId}:${devicePath}:${Thermostat.Complete.id}:operating-state`,
+            state: operatingState,
+          });
+        }
+      });
+    }
   }
 
   const electricalPowerMeasurement = device.getClusterClientById(ElectricalPowerMeasurement.Complete.id);
@@ -687,6 +736,19 @@ async function listenToStateChange(nodeId, devicePath, device) {
           device_feature_external_id: `matter:${nodeId}:${devicePath}:${PowerSource.Complete.id}:battery`,
           state: batteryPercent,
         });
+      });
+    }
+    // Subscribe to PowerSource battery charge level (ok / warning / critical) attribute changes
+    if (powerSource.addBatChargeLevelAttributeListener) {
+      powerSource.addBatChargeLevelAttributeListener((value) => {
+        logger.debug(`Matter: PowerSource batChargeLevel attribute changed to ${value}`);
+        const batteryLow = matterBatChargeLevelToGladysBatteryLow(value);
+        if (batteryLow !== null) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+            device_feature_external_id: `matter:${nodeId}:${devicePath}:${PowerSource.Complete.id}:battery-low`,
+            state: batteryLow,
+          });
+        }
       });
     }
   }

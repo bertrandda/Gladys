@@ -33,7 +33,15 @@ const {
 } = require('@matter/main/clusters');
 
 const MatterHandler = require('../../../../services/matter/lib');
-const { EVENTS, STATE, FAN_MODE, AC_MODE, LOCK } = require('../../../../utils/constants');
+const {
+  EVENTS,
+  STATE,
+  FAN_MODE,
+  AC_MODE,
+  LOCK,
+  THERMOSTAT_MODE,
+  THERMOSTAT_OPERATING_STATE,
+} = require('../../../../utils/constants');
 
 describe('Matter.readInitialDeviceStates', () => {
   let matterHandler;
@@ -260,6 +268,82 @@ describe('Matter.readInitialDeviceStates', () => {
     };
     const device = {
       getClusterClientById: (id) => (id === Thermostat.Complete.id ? thermostat : null),
+    };
+
+    await matterHandler.readInitialDeviceStates(1234n, '1', device);
+
+    assert.notCalled(gladys.event.emit);
+  });
+
+  it('should read the mode and the running state of a heating-only thermostat', async () => {
+    const thermostat = {
+      supportedFeatures: { heating: true },
+      isAttributeSupportedByName: (name) => name === 'thermostatRunningState',
+      getLocalTemperatureAttribute: fake.resolves(undefined),
+      getOccupiedHeatingSetpointAttribute: fake.resolves(undefined),
+      // Matter SystemMode Off = 0
+      getSystemModeAttribute: fake.resolves(0),
+      getThermostatRunningStateAttribute: fake.resolves({ heat: false, cool: false }),
+    };
+    const device = {
+      getClusterClientById: (id) => (id === Thermostat.Complete.id ? thermostat : null),
+    };
+
+    await matterHandler.readInitialDeviceStates(1234n, '1', device);
+
+    assert.calledTwice(gladys.event.emit);
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: `matter:1234:1:${Thermostat.Complete.id}:thermostat-mode`,
+      state: THERMOSTAT_MODE.OFF,
+    });
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: `matter:1234:1:${Thermostat.Complete.id}:operating-state`,
+      state: THERMOSTAT_OPERATING_STATE.IDLE,
+    });
+  });
+
+  it('should skip the mode and the running state of a heating-only thermostat when reads fail', async () => {
+    const thermostat = {
+      supportedFeatures: { heating: true },
+      isAttributeSupportedByName: () => true,
+      getLocalTemperatureAttribute: fake.resolves(undefined),
+      getOccupiedHeatingSetpointAttribute: fake.resolves(undefined),
+      getSystemModeAttribute: fake.rejects(new Error('read failed')),
+      getThermostatRunningStateAttribute: fake.rejects(new Error('read failed')),
+    };
+    const device = {
+      getClusterClientById: (id) => (id === Thermostat.Complete.id ? thermostat : null),
+    };
+
+    await matterHandler.readInitialDeviceStates(1234n, '1', device);
+
+    assert.notCalled(gladys.event.emit);
+  });
+
+  it('should read the battery charge level', async () => {
+    const powerSource = {
+      getBatPercentRemainingAttribute: fake.resolves(undefined),
+      getBatChargeLevelAttribute: fake.resolves(PowerSource.BatChargeLevel.Ok),
+    };
+    const device = {
+      getClusterClientById: (id) => (id === PowerSource.Complete.id ? powerSource : null),
+    };
+
+    await matterHandler.readInitialDeviceStates(1234n, '1', device);
+
+    assert.calledOnceWithExactly(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: `matter:1234:1:${PowerSource.Complete.id}:battery-low`,
+      state: 0,
+    });
+  });
+
+  it('should skip the battery charge level when the attribute read fails', async () => {
+    const powerSource = {
+      getBatPercentRemainingAttribute: fake.resolves(undefined),
+      getBatChargeLevelAttribute: fake.rejects(new Error('read failed')),
+    };
+    const device = {
+      getClusterClientById: (id) => (id === PowerSource.Complete.id ? powerSource : null),
     };
 
     await matterHandler.readInitialDeviceStates(1234n, '1', device);

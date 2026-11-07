@@ -38,10 +38,16 @@ const {
   FAN_AIRFLOW_DIRECTION,
   FAN_ROCK_SETTING,
   FAN_WIND_SETTING,
+  THERMOSTAT_OPERATING_STATE,
 } = require('../../../utils/constants');
 const { slugify } = require('../../../utils/slugify');
 const { matterAttributeToNumber } = require('./fanMatterMapping');
-const { getAcModeSupportedOptions } = require('./thermostatMatterMapping');
+const {
+  getAcModeSupportedOptions,
+  getThermostatModeSupportedOptions,
+  getSetpointLimits,
+  isAttributeSupported,
+} = require('./thermostatMatterMapping');
 const { getBooleanStateFeatureCategoryAndType } = require('./booleanStateMatterMapping');
 const { applyLightCategoryToOnOff } = require('./lightMatterMapping');
 
@@ -290,6 +296,7 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
           max: 200,
         });
         if (clusterClient.supportedFeatures.heating) {
+          const heatingLimits = await getSetpointLimits(clusterClient, 'heat');
           gladysDevice.features.push({
             name: `${clusterClient.name} - ${clusterClient.endpointId} (Heating)`,
             category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
@@ -298,11 +305,40 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
             has_feedback: true,
             unit: DEVICE_FEATURE_UNITS.CELSIUS,
             external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:heating`,
-            min: -100,
-            max: 200,
+            min: heatingLimits.min,
+            max: heatingLimits.max,
+          });
+          // A heating-only thermostat has no air conditioning mode feature: its system mode
+          // (off / heat / auto) is exposed as a thermostat mode, which carries Off
+          if (!clusterClient.supportedFeatures.cooling) {
+            const thermostatModeSupportedOptions = getThermostatModeSupportedOptions(clusterClient.supportedFeatures);
+            gladysDevice.features.push({
+              name: `${clusterClient.name} - ${clusterClient.endpointId} (Mode)`,
+              category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
+              type: DEVICE_FEATURE_TYPES.THERMOSTAT.MODE,
+              read_only: false,
+              has_feedback: true,
+              external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:thermostat-mode`,
+              min: thermostatModeSupportedOptions[0].value,
+              max: thermostatModeSupportedOptions[thermostatModeSupportedOptions.length - 1].value,
+              supported_options: thermostatModeSupportedOptions,
+            });
+          }
+        }
+        if (isAttributeSupported(clusterClient, 'thermostatRunningState', false)) {
+          gladysDevice.features.push({
+            name: `${clusterClient.name} - ${clusterClient.endpointId} (Operating state)`,
+            category: DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
+            type: DEVICE_FEATURE_TYPES.THERMOSTAT.OPERATING_STATE,
+            read_only: true,
+            has_feedback: true,
+            external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:operating-state`,
+            min: THERMOSTAT_OPERATING_STATE.IDLE,
+            max: THERMOSTAT_OPERATING_STATE.COOLING,
           });
         }
         if (clusterClient.supportedFeatures.cooling) {
+          const coolingLimits = await getSetpointLimits(clusterClient, 'cool');
           gladysDevice.features.push({
             name: `${clusterClient.name} - ${clusterClient.endpointId} (Cooling)`,
             category: DEVICE_FEATURE_CATEGORIES.AIR_CONDITIONING,
@@ -311,8 +347,8 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
             has_feedback: true,
             unit: DEVICE_FEATURE_UNITS.CELSIUS,
             external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:cooling`,
-            min: -100,
-            max: 200,
+            min: coolingLimits.min,
+            max: coolingLimits.max,
           });
           // Air conditioners expose their operating mode (auto/cool/heat/dry/fan)
           // through the Thermostat cluster SystemMode attribute
@@ -673,16 +709,30 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
         });
       } else if (clusterIndex === PowerSource.Complete.id) {
         if (clusterClient.supportedFeatures && clusterClient.supportedFeatures.battery) {
+          // BatPercentRemaining is optional: many devices only report a charge level
+          if (isAttributeSupported(clusterClient, 'batPercentRemaining')) {
+            gladysDevice.features.push({
+              name: `${clusterClient.name} - ${clusterClient.endpointId} (Battery)`,
+              category: DEVICE_FEATURE_CATEGORIES.BATTERY,
+              type: DEVICE_FEATURE_TYPES.BATTERY.INTEGER,
+              read_only: true,
+              has_feedback: true,
+              unit: DEVICE_FEATURE_UNITS.PERCENT,
+              external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:battery`,
+              min: 0,
+              max: 100,
+            });
+          }
+          // BatChargeLevel (ok / warning / critical) is mandatory on battery power sources
           gladysDevice.features.push({
-            name: `${clusterClient.name} - ${clusterClient.endpointId} (Battery)`,
-            category: DEVICE_FEATURE_CATEGORIES.BATTERY,
-            type: DEVICE_FEATURE_TYPES.BATTERY.INTEGER,
+            name: `${clusterClient.name} - ${clusterClient.endpointId} (Battery low)`,
+            category: DEVICE_FEATURE_CATEGORIES.BATTERY_LOW,
+            type: DEVICE_FEATURE_TYPES.BATTERY_LOW.BINARY,
             read_only: true,
             has_feedback: true,
-            unit: DEVICE_FEATURE_UNITS.PERCENT,
-            external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:battery`,
+            external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:battery-low`,
             min: 0,
-            max: 100,
+            max: 1,
           });
         }
       }

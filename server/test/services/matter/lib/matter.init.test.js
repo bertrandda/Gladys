@@ -514,8 +514,8 @@ describe('Matter.init', () => {
             unit: 'celsius',
             external_id: 'matter:12345:1:513:heating',
             selector: matterHandler.devices[0].features[10].selector,
-            min: -100,
-            max: 200,
+            min: 7,
+            max: 30,
           },
           {
             name: 'Thermostat - 1 (Cooling)',
@@ -526,8 +526,8 @@ describe('Matter.init', () => {
             unit: 'celsius',
             external_id: 'matter:12345:1:513:cooling',
             selector: matterHandler.devices[0].features[11].selector,
-            min: -100,
-            max: 200,
+            min: 16,
+            max: 32,
           },
           {
             name: 'Thermostat - 1 (Mode)',
@@ -799,8 +799,8 @@ describe('Matter.init', () => {
             unit: 'celsius',
             external_id: 'matter:12345:1:child_endpoint:2:513:heating',
             selector: matterHandler.devices[1].features[10].selector,
-            min: -100,
-            max: 200,
+            min: 7,
+            max: 30,
           },
           {
             name: 'Thermostat - 1 (Cooling)',
@@ -811,8 +811,8 @@ describe('Matter.init', () => {
             unit: 'celsius',
             external_id: 'matter:12345:1:child_endpoint:2:513:cooling',
             selector: matterHandler.devices[1].features[11].selector,
-            min: -100,
-            max: 200,
+            min: 16,
+            max: 32,
           },
           {
             name: 'Thermostat - 1 (Mode)',

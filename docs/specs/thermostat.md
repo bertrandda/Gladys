@@ -32,13 +32,13 @@ An **external** thermostat carries **two features of its own, `preset` and `mode
 
 The design is constrained by what integrations publish today, which is much less than the core defines:
 
-| Integration           | `target-temperature`                                       | `operating-state`                          | `mode`                                                                                                                               |
-| --------------------- | ---------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Netatmo               | yes                                                        | no — a boiler contact as `switch`/`binary` | no                                                                                                                                   |
-| Zigbee2MQTT           | yes, **up to five** (heating/cooling, occupied/unoccupied) | no                                         | no                                                                                                                                   |
-| Matter                | yes, **two** (heating, cooling)                            | no                                         | no                                                                                                                                   |
-| MQTT / Home Assistant | yes, when the discovery declares it                        | no                                         | no                                                                                                                                   |
-| Air conditioners      | yes, as `air-conditioning`/`target-temperature`            | no                                         | yes, as `air-conditioning`/`mode` (`AC_MODE`) — no `off` value; the unit is stopped by its `air-conditioning`/`binary` power feature |
+| Integration           | `target-temperature`                                                     | `operating-state`                                     | `mode`                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Netatmo               | yes                                                                      | no — a boiler contact as `switch`/`binary`            | no                                                                                                                                                             |
+| Zigbee2MQTT           | yes, **up to five** (heating/cooling, occupied/unoccupied)               | no                                                    | no                                                                                                                                                             |
+| Matter                | yes, **two** (heating, cooling), within the limits the device advertises | yes, when the device exposes `ThermostatRunningState` | yes on a heating-only thermostat, as `thermostat`/`mode` (`off` / `heating`, plus `auto` when supported); a reversible one keeps its `air-conditioning`/`mode` |
+| MQTT / Home Assistant | yes, when the discovery declares it                                      | no                                                    | no                                                                                                                                                             |
+| Air conditioners      | yes, as `air-conditioning`/`target-temperature`                          | no                                                    | yes, as `air-conditioning`/`mode` (`AC_MODE`) — no `off` value; the unit is stopped by its `air-conditioning`/`binary` power feature                           |
 
 Air conditioners and heat pumps (MELCloud, Tuya, Sensibo, external integrations…) do not publish the `thermostat` category at all: their setpoint, their mode and their power live in `air-conditioning` (A.0.3). Offering only `thermostat`/`target-temperature` as a target left every heat pump out of the picker, with nothing to tell the user why.
 
@@ -46,7 +46,7 @@ Three consequences, each of which is a rule the code follows:
 
 - **No auto-discovery of the target.** A Matter or Zigbee device exposes several setpoints and only the user knows which one drives their heating, so the selectors are picked by hand in the edit form, out of _every_ device in the house (A.3 narrows the list to the thermostat's room by default, it never hides the rest).
 - **The state feature accepts two shapes.** `thermostat`/`operating-state` (0 idle / 1 heating / 2 cooling) _and_ a read-only `switch`/`binary` boiler contact. Accepting only the standard type would leave every thermostat available today with no heating indication at all. It also accepts **nothing**: the widget then shows the setpoint without a heating halo.
-- **The mode feature is optional.** No integration produces one. Requiring it would make the feature unusable for everybody.
+- **The mode feature is optional.** Only Matter produces one, and only on a heating-only thermostat. Requiring it would make the feature unusable for almost everybody.
 
 ### A.0.2 No loops
 
@@ -253,7 +253,7 @@ Four properties of that write, each one required by a different vendor:
 
 - **Converted into the target feature's unit.** A thermostat configured in celsius pointing at a fahrenheit device would otherwise write `21` where the device reads 21 °F. MQTT/Home Assistant takes its unit from the discovery payload, so the mismatch is reachable in practice. The converted value is rounded to what a device in that unit displays — a whole degree Fahrenheit, half a degree Celsius: 21 °C is 69.8 °F, a device echoes back `70`, and an unrounded value would never compare equal to it.
 - **Snapped to the feature's `step`** when it declares one. A device only takes multiples of its step and reports the multiple it settled on; without the snap the skip below never matches, the setpoint is re-written every minute, and its echo looks like a change made on the device (C.0.1).
-- **Clamped to the feature's own `min`/`max`.** Netatmo advertises 5-30, Zigbee 5-40, Matter -100-200. A value outside the range is rejected or silently clamped by the integration; clamping here is where it can be logged.
+- **Clamped to the feature's own `min`/`max`.** Netatmo advertises 5-30, Zigbee 5-40, Matter the limits the device reports (7-30 by default; a device paired before they were read keeps -100-200 until it is updated from the Matter page). A value outside the range is rejected or silently clamped by the integration; clamping here is where it can be logged.
 - **Skipped when the value already matches.** Several of these integrations call a cloud API on every write, and re-sending an unchanged setpoint once a minute would burn the rate limit for nothing.
 
 A write that fails — an unreachable integration, an expired cloud token, an external integration that does not acknowledge the command within the core's 5 s budget — is logged and swallowed: one dead thermostat must not stop the others, and the next tick retries it anyway since the value still differs.

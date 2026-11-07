@@ -38,6 +38,7 @@ const {
   FAN_AIRFLOW_DIRECTION,
   FAN_ROCK_SETTING,
   FAN_WIND_SETTING,
+  COVER_STATE,
 } = require('../../../utils/constants');
 const { slugify } = require('../../../utils/slugify');
 const { matterAttributeToNumber } = require('./fanMatterMapping');
@@ -231,8 +232,8 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
           has_feedback: true,
           unit: null,
           external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:state`,
-          min: 0,
-          max: 1,
+          min: COVER_STATE.CLOSE,
+          max: COVER_STATE.OPEN,
         });
       } else if (
         clusterIndex === LevelControl.Complete.id &&

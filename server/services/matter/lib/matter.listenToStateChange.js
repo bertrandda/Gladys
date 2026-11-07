@@ -32,6 +32,7 @@ const logger = require('../../../utils/logger');
 const { matterFanModeToGladys, matterAttributeToNumber } = require('../utils/fanMatterMapping');
 const { matterLockStateToGladys, matterLockStateToGladysBinary } = require('../utils/doorLockMatterMapping');
 const { matterSystemModeToGladysAcMode } = require('../utils/thermostatMatterMapping');
+const { matterLiftPositionToGladys, matterOperationalStatusToGladys } = require('../utils/windowCoveringMatterMapping');
 const { hsbToRgb, rgbToInt } = require('../../../utils/colors');
 const { EVENTS, STATE, BUTTON_STATUS } = require('../../../utils/constants');
 const {
@@ -178,11 +179,27 @@ async function listenToStateChange(nodeId, devicePath, device) {
     // Subscribe to change in position
     windowCover.addCurrentPositionLiftPercent100thsAttributeListener((value) => {
       logger.debug(`Matter: WindowCovering attribute changed to ${value}`);
-      this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
-        device_feature_external_id: `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:position`,
-        state: value / 100,
-      });
+      const position = matterLiftPositionToGladys(value);
+      if (position !== null) {
+        this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+          device_feature_external_id: `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:position`,
+          state: position,
+        });
+      }
     });
+    // Subscribe to the movement of the covering (opening, closing, stopped)
+    if (windowCover.addOperationalStatusAttributeListener) {
+      windowCover.addOperationalStatusAttributeListener((value) => {
+        logger.debug(`Matter: WindowCovering operational status changed to ${JSON.stringify(value)}`);
+        const state = matterOperationalStatusToGladys(value);
+        if (state !== null) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+            device_feature_external_id: `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:state`,
+            state,
+          });
+        }
+      });
+    }
   }
 
   const levelControl = device.getClusterClientById(LevelControl.Complete.id);

@@ -33,7 +33,7 @@ const { expect } = require('chai');
 
 const { fake, assert } = sinon;
 
-const { EVENTS, STATE, BUTTON_STATUS, FAN_MODE, AC_MODE, LOCK } = require('../../../../utils/constants');
+const { EVENTS, STATE, BUTTON_STATUS, FAN_MODE, AC_MODE, LOCK, COVER_STATE } = require('../../../../utils/constants');
 
 const MatterHandler = require('../../../../services/matter/lib');
 
@@ -514,16 +514,43 @@ describe('Matter.listenToStateChange', () => {
       addCurrentPositionLiftPercent100thsAttributeListener: (callback) => {
         callback(8400);
       },
+      addOperationalStatusAttributeListener: (callback) => {
+        callback({ global: 1, lift: 1, tilt: 0 });
+      },
     };
     const device = {
       number: 1,
       getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
     };
     await matterHandler.listenToStateChange(1234n, '1', device);
+    // 84 % closed in Matter is 16 % open in Gladys
     assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
       device_feature_external_id: 'matter:1234:1:258:position',
-      state: 84,
+      state: 16,
     });
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: 'matter:1234:1:258:state',
+      state: COVER_STATE.OPEN,
+    });
+  });
+  it('should not emit an unknown WindowCovering position or movement', async () => {
+    const clusterClient = {
+      id: WindowCovering.Complete.id,
+      addCurrentPositionLiftPercent100thsAttributeListener: (callback) => {
+        // A covering which does not know its position reports null
+        callback(null);
+      },
+      addOperationalStatusAttributeListener: (callback) => {
+        // Reserved MovementStatus value
+        callback({ global: 3, lift: 3, tilt: 0 });
+      },
+    };
+    const device = {
+      number: 1,
+      getClusterClientById: (id) => (id === clusterClient.id ? clusterClient : null),
+    };
+    await matterHandler.listenToStateChange(1234n, '1', device);
+    assert.notCalled(gladys.event.emit);
   });
   it('should listen to state change (LevelControl)', async () => {
     const clusterClient = {

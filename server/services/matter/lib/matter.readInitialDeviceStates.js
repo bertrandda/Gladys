@@ -31,6 +31,7 @@ const logger = require('../../../utils/logger');
 const { matterFanModeToGladys, matterAttributeToNumber } = require('../utils/fanMatterMapping');
 const { matterLockStateToGladys, matterLockStateToGladysBinary } = require('../utils/doorLockMatterMapping');
 const { matterSystemModeToGladysAcMode } = require('../utils/thermostatMatterMapping');
+const { matterLiftPositionToGladys, matterOperationalStatusToGladys } = require('../utils/windowCoveringMatterMapping');
 const { hsbToRgb, rgbToInt } = require('../../../utils/colors');
 const { EVENTS, STATE } = require('../../../utils/constants');
 const {
@@ -125,8 +126,16 @@ async function readInitialDeviceStates(nodeId, devicePath, device) {
   const windowCover = device.getClusterClientById(WindowCovering.Complete.id);
   if (windowCover) {
     const value = await safeReadAttribute(() => windowCover.getCurrentPositionLiftPercent100thsAttribute());
-    if (value !== undefined) {
-      emitState(`matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:position`, value / 100);
+    emitState(
+      `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:position`,
+      matterLiftPositionToGladys(value),
+    );
+    if (windowCover.getOperationalStatusAttribute) {
+      const operationalStatus = await safeReadAttribute(() => windowCover.getOperationalStatusAttribute());
+      emitState(
+        `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:state`,
+        matterOperationalStatusToGladys(operationalStatus),
+      );
     }
   }
 

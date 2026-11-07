@@ -33,7 +33,7 @@ const {
 } = require('@matter/main/clusters');
 
 const MatterHandler = require('../../../../services/matter/lib');
-const { EVENTS, STATE, FAN_MODE, AC_MODE, LOCK } = require('../../../../utils/constants');
+const { EVENTS, STATE, FAN_MODE, AC_MODE, LOCK, COVER_STATE } = require('../../../../utils/constants');
 
 describe('Matter.readInitialDeviceStates', () => {
   let matterHandler;
@@ -91,7 +91,8 @@ describe('Matter.readInitialDeviceStates', () => {
         getMeasuredValueAttribute: fake.resolves(2100),
       },
       [WindowCovering.Complete.id]: {
-        getCurrentPositionLiftPercent100thsAttribute: fake.resolves(5000),
+        getCurrentPositionLiftPercent100thsAttribute: fake.resolves(3000),
+        getOperationalStatusAttribute: fake.resolves({ global: 2, lift: 2, tilt: 0 }),
       },
       [LevelControl.Complete.id]: {
         getCurrentLevelAttribute: fake.resolves(128),
@@ -194,7 +195,12 @@ describe('Matter.readInitialDeviceStates', () => {
     });
     assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
       device_feature_external_id: `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:position`,
-      state: 50,
+      // 30 % closed in Matter is 70 % open in Gladys
+      state: 70,
+    });
+    assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
+      device_feature_external_id: `matter:${nodeId}:${devicePath}:${WindowCovering.Complete.id}:state`,
+      state: COVER_STATE.CLOSE,
     });
     assert.calledWith(gladys.event.emit, EVENTS.DEVICE.NEW_STATE, {
       device_feature_external_id: `matter:${nodeId}:${devicePath}:${LevelControl.Complete.id}`,
@@ -489,6 +495,7 @@ describe('Matter.readInitialDeviceStates', () => {
     const clusterClients = {
       [WindowCovering.Complete.id]: {
         getCurrentPositionLiftPercent100thsAttribute: fake.resolves(undefined),
+        getOperationalStatusAttribute: fake.rejects(new Error('unsupported attribute')),
       },
       [RelativeHumidityMeasurement.Complete.id]: {
         getMeasuredValueAttribute: fake.resolves(undefined),

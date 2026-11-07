@@ -202,7 +202,8 @@ describe('Matter.setValue', () => {
     });
 
     await matterHandler.setValue(gladysDevice, gladysFeature, value);
-    assert.calledWith(clusterClient.goToLiftPercentage, { liftPercent100thsValue: 8000 });
+    // Gladys counts the opening (80 % open), Matter the closing (20 % closed)
+    assert.calledWith(clusterClient.goToLiftPercentage, { liftPercent100thsValue: 2000 });
   });
   it('should control of a shutter (state)', async () => {
     const gladysDevice = {

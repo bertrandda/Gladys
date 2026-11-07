@@ -144,7 +144,7 @@ The **Gladys feature** column lists matching `category/type` pairs from `server/
 | `WebRtcTransportRequestor` | The WebRTC transport requestor cluster provides a way for stream consumers (e.g. | No | — | Not explicitly handled in `server/services/matter`. |
 | `WiFiNetworkDiagnostics` | The Wi-Fi Network Diagnostics Cluster provides a means to acquire standardized diagnostics metrics that may be used by a Node to assist a user or Administrator in diagnosing potential problems. | No | — | Not explicitly handled in `server/services/matter`. |
 | `WiFiNetworkManagement` | This cluster provides an interface for getting information about the Wi-Fi network that a Network Infrastructure Manager device type provides. | No | — | Not explicitly handled in `server/services/matter`. |
-| `WindowCovering` | The window covering cluster provides an interface for controlling and adjusting automatic window coverings such as drapery motors, automatic shades, curtains and blinds. | Yes | shutter/position, shutter/state | Position + open/close/stop commands. |
+| `WindowCovering` | The window covering cluster provides an interface for controlling and adjusting automatic window coverings such as drapery motors, automatic shades, curtains and blinds. | Yes | shutter/position, shutter/state | Lift position (inverted, see below), open/close/stop commands and movement (`OperationalStatus`). |
 | `ZoneManagement` | This cluster provides an interface to manage regions of interest, or Zones, which can be either manufacturer or user defined. | No | — | Not explicitly handled in `server/services/matter`. |
 
 ## BooleanState device types
@@ -179,6 +179,40 @@ of those change here, so a leak detector already stored as `switch/binary` is st
 already paired and is not offered again: refreshing the discovery page does **not** remap it. The
 only upgrade path is to delete the device in Gladys and add it again, which resets the history
 selectors and the scenes referencing its features.
+
+## WindowCovering position and state
+
+Matter and Gladys count the position of a covering in opposite directions. The Matter
+`CurrentPositionLiftPercent100ths` attribute says how much the covering is **closed**
+(`0` = fully open, `10000` = fully closed), while the Gladys `shutter/position` feature says how
+much it is **open** (`0` = closed, `100` = open) — the convention HomeKit, Google Home and Alexa
+receive from Gladys. The conversion lives in
+`server/services/matter/utils/windowCoveringMatterMapping.js`:
+
+| Direction | Conversion | Example |
+| --- | --- | --- |
+| Matter → Gladys (`listenToStateChange`, `readInitialDeviceStates`) | `100 - liftPercent100ths / 100` | `2000` → `80` |
+| Gladys → Matter (`setValue`, `goToLiftPercentage`) | `round((100 - position) * 100)` | `80` → `2000` |
+
+A `null` position (a covering which does not know where it is) is not emitted.
+
+The `shutter/state` feature (`min: -1`, `max: 1`) sends the open/close/stop commands
+(`upOrOpen`, `downOrClose`, `stopMotion`) and reports the movement read from the lift field of
+`OperationalStatus` (the global field when the lift one is absent):
+
+| Matter `MovementStatus` | Gladys `COVER_STATE` |
+| --- | --- |
+| `Stopped` (0) | `STOP` (0) |
+| `Opening` (1) | `OPEN` (1) |
+| `Closing` (2) | `CLOSE` (-1) |
+
+The position used to be copied without inversion. The migration
+`20261107000000-matter-shutter-position-direction` inverts the last value of the Matter shutter
+positions, the "set value" actions of the scenes on them and the "device state" triggers on them
+(value and operator). A value computed by a formula, a trigger mixing a Matter position with other
+features and a condition on a value read by a "get value" action are left untouched and logged as
+warnings. The history is not rewritten. It also widens the range of the `shutter/state` features
+of the coverings already paired, which were declared from `0` to `1`.
 
 ## How the percentage is calculated
 

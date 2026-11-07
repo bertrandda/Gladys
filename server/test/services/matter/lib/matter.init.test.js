@@ -456,7 +456,7 @@ describe('Matter.init', () => {
             unit: null,
             external_id: 'matter:12345:1:258:state',
             selector: matterHandler.devices[0].features[5].selector,
-            min: 0,
+            min: -1,
             max: 1,
           },
           {
@@ -741,7 +741,7 @@ describe('Matter.init', () => {
             unit: null,
             external_id: 'matter:12345:1:child_endpoint:2:258:state',
             selector: matterHandler.devices[1].features[5].selector,
-            min: 0,
+            min: -1,
             max: 1,
           },
           {

@@ -21,6 +21,7 @@ const {
 } = require('../utils/fanMatterMapping');
 const { convertGladysRunModeToMatter, convertGladysCleanModeToMatter } = require('../utils/vacuumCleanerStateMapping');
 const { gladysAcModeToMatterSystemMode } = require('../utils/thermostatMatterMapping');
+const { gladysPositionToMatterLift } = require('../utils/windowCoveringMatterMapping');
 
 /**
  * @description Find a device recursively through child endpoints.
@@ -128,7 +129,7 @@ async function setValue(gladysDevice, gladysFeature, value) {
     // Handle device feature shutter position
     if (gladysFeature.type === DEVICE_FEATURE_TYPES.SHUTTER.POSITION) {
       await windowCovering.goToLiftPercentage({
-        liftPercent100thsValue: value * 100,
+        liftPercent100thsValue: gladysPositionToMatterLift(value),
       });
     }
     // Handle device feature shutter state

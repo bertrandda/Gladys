@@ -44,11 +44,15 @@ function truncate(value) {
 }
 
 /**
- * @description Build the matter.js endpoints of a planned device: a bridged node carrying one
- * child endpoint per function (a light, a temperature sensor...), which every ecosystem shows as
- * a single accessory. A device with one function is built the same way, so the endpoint of that
- * function keeps its id and number when the device gains a second one: the ecosystems keep the
- * room, the name and the automations given to it.
+ * @description Build the matter.js endpoints of a planned device: a bridged node that carries the
+ * main function of the device (its first one: an actuator before a sensor, see ADAPTERS), with one
+ * child endpoint per other function. Every ecosystem shows them as a single accessory, and the root
+ * having a function of its own tells them which one it is: a shutter with a light sensor is a
+ * shutter, not one of two equal candidates an ecosystem picks from. A device with one function is
+ * a single endpoint, the usual shape of a bridged device.
+ * Ecosystems know an endpoint by its number: a function added to the device is a new child and
+ * moves nothing, unless it comes before the main one (a sensor gaining a light), which then moves to
+ * a child.
  * @param {object} matter - The matter.js modules.
  * @param {object} device - Gladys device.
  * @param {object} plan - Plan of the device, from planDevice.
@@ -58,7 +62,8 @@ function truncate(value) {
  * (see endpointNumbers): ecosystems know an endpoint by its number, and matter.js forgets the
  * number of a deleted endpoint.
  * @returns {object} { root, children, functions: [{ adapter, roles, endpoint }], battery }, the
- * battery listing the endpoints that carry it: { adapter, roles, endpoints }.
+ * first function being on the root, and the battery listing the endpoints that carry it:
+ * { adapter, roles, endpoints }.
  * @example
  * const built = buildEndpoints(matter, device, plan, ctx);
  */
@@ -75,12 +80,13 @@ function buildEndpoints(matter, device, plan, ctx, numbers = {}) {
     states: [],
     ...adapter.build(matter, roles, ctx),
   }));
+  const [main] = parts;
 
-  // The battery goes on the root of the device, unless some functions must carry a power source
-  // of their own: it then goes on each of them, so none has to pretend to be mains powered.
+  // The battery goes on the main function, which is the root of the device, unless some functions
+  // must carry a power source of their own: it then goes on each of them, so none has to pretend to
+  // be mains powered.
   const powered = parts.filter(({ adapter }) => adapter.requiresPowerSource);
-  const root = { behaviors: [BridgedDeviceBasicInformationServer], states: [] };
-  const batteryHosts = powered.length > 0 ? powered : [root];
+  const batteryHosts = powered.length > 0 ? powered : [main];
   if (plan.battery) {
     batteryHosts.forEach((host) => {
       host.behaviors.push(plan.battery.adapter.behavior(matter));
@@ -93,7 +99,10 @@ function buildEndpoints(matter, device, plan, ctx, numbers = {}) {
     });
   }
 
-  root.states.push({
+  // The root is the main function, made a bridged node: matter.js lists the Bridged Node device
+  // type next to that of the function.
+  main.behaviors.unshift(BridgedDeviceBasicInformationServer);
+  main.states.push({
     bridgedDeviceBasicInformation: {
       nodeLabel: truncate(device.name),
       productName: truncate(device.model || 'Gladys'),
@@ -105,35 +114,34 @@ function buildEndpoints(matter, device, plan, ctx, numbers = {}) {
     },
   });
 
-  const rootEndpoint = new Endpoint(matter.endpoints.BridgedNodeEndpoint.with(...root.behaviors), {
-    ...withNumber(rootId),
-    ...mergeState(...root.states),
-  });
-
-  // A child is numbered among the functions of its own kind only: matter.js keeps the endpoint
-  // number of an id, so a new kind of function, or a change in the order adapters are tried,
-  // must not rename the children already paired in the ecosystems.
+  // A child is numbered among the functions of its own kind only, the main function counting as
+  // the first of its kind (the second outlet of a power strip is `-plug-2`): matter.js keeps the
+  // endpoint number of an id, so a new kind of function, or a change in the order adapters are
+  // tried, must not rename the children already paired in the ecosystems.
   const counts = {};
   const functions = parts.map((part) => {
     counts[part.adapter.key] = (counts[part.adapter.key] || 0) + 1;
+    const id = part === main ? rootId : `${rootId}-${part.adapter.key}-${counts[part.adapter.key]}`;
     const type = part.behaviors.length > 0 ? part.type.with(...part.behaviors) : part.type;
     const endpoint = new Endpoint(type, {
-      ...withNumber(`${rootId}-${part.adapter.key}-${counts[part.adapter.key]}`),
+      ...withNumber(id),
       ...mergeState(part.state, ...part.states),
     });
     return { adapter: part.adapter, roles: part.roles, endpoint };
   });
 
-  const batteryEndpoints =
-    powered.length > 0
-      ? functions.filter(({ adapter }) => adapter.requiresPowerSource).map(({ endpoint }) => endpoint)
-      : [rootEndpoint];
-
   return {
-    root: rootEndpoint,
-    children: functions.map(({ endpoint }) => endpoint),
+    root: functions[0].endpoint,
+    children: functions.slice(1).map(({ endpoint }) => endpoint),
     functions,
-    battery: plan.battery ? { ...plan.battery, endpoints: batteryEndpoints } : null,
+    battery: plan.battery
+      ? {
+          ...plan.battery,
+          endpoints: functions
+            .filter((fn, index) => batteryHosts.includes(parts[index]))
+            .map(({ endpoint }) => endpoint),
+        }
+      : null,
   };
 }
 

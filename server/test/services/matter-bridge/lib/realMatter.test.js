@@ -255,6 +255,30 @@ describe('Matter bridge on the real matter.js', function realMatter() {
     });
   });
 
+  it('should make the main function of a device its bridged node, and the others its parts', () => {
+    const { root, children } = built.get('climate');
+    const deviceTypes = (endpoint) => endpoint.state.descriptor.deviceTypeList.map(({ deviceType }) => deviceType);
+    // The root is a temperature sensor and a bridged node (with the power source of its battery):
+    // ecosystems know which function the device is.
+    expect(deviceTypes(root)).to.have.members([
+      matter.devices.TemperatureSensorDevice.deviceType,
+      matter.endpoints.BridgedNodeEndpoint.deviceType,
+      matter.endpoints.PowerSourceEndpoint.deviceType,
+    ]);
+    expect(root.state.descriptor.partsList).to.deep.equal(children.map(({ number }) => number));
+    expect(children.map((child) => deviceTypes(child))).to.deep.equal([
+      [matter.devices.HumiditySensorDevice.deviceType],
+      [matter.devices.PressureSensorDevice.deviceType],
+    ]);
+    // A device with one function is a single endpoint.
+    const plug = built.get('plug');
+    expect(plug.children).to.deep.equal([]);
+    expect(deviceTypes(plug.root)).to.have.members([
+      matter.devices.OnOffPlugInUnitDevice.deviceType,
+      matter.endpoints.BridgedNodeEndpoint.deviceType,
+    ]);
+  });
+
   it('should give the bindings the observables the adapters listen to', () => {
     built.forEach(({ functions }) => {
       functions.forEach(({ adapter, roles, endpoint }) => {
@@ -270,12 +294,12 @@ describe('Matter bridge on the real matter.js', function realMatter() {
   });
 
   it('should report the colour transition time the colour lights require', () => {
-    const [light] = built.get('color-light').children;
+    const light = built.get('color-light').root;
     expect(light.state.colorControl.remainingTime).to.equal(0);
   });
 
   it('should offer the whites a lamp in mireds can make, and pass its temperature through', () => {
-    const [ikea] = built.get('ikea-light').children;
+    const ikea = built.get('ikea-light').root;
     expect(ikea.state.colorControl).to.include({
       colorTemperatureMireds: 370,
       colorTempPhysicalMinMireds: 250,
@@ -285,7 +309,7 @@ describe('Matter bridge on the real matter.js', function realMatter() {
 
   it('should end the movement of a cover that stopped, or that nothing more came from', async () => {
     const shutterDevice = DEVICES.find(({ id }) => id === 'shutter');
-    const [shutter] = built.get('shutter').children;
+    const shutter = built.get('shutter').root;
     const { settle } = built.get('shutter').functions[0].adapter;
     const bindings = new Bindings({ event: { emit: () => null } });
     bindings.add(shutterDevice, built.get('shutter'));
@@ -321,19 +345,19 @@ describe('Matter bridge on the real matter.js', function realMatter() {
     const Base = matter.behaviors.WindowCoveringServer.with('Lift', 'PositionAwareLift');
     expect(Base.prototype.handleMovement).to.be.a('function');
     expect(Base.prototype.handleStopMovement).to.be.a('function');
-    const [shutter] = built.get('shutter').children;
+    const shutter = built.get('shutter').root;
     expect(shutter.state.windowCovering.currentPositionLiftPercent100ths).to.equal(4000);
   });
 
   it('should set the mandatory attributes of the power sources', () => {
     const [sensorRoot] = [built.get('climate').root];
     expect(sensorRoot.state.powerSource).to.include({ batReplacementNeeded: false, batPercentRemaining: 14 });
-    const [mainsAlarm] = built.get('mains-alarm').children;
+    const mainsAlarm = built.get('mains-alarm').root;
     expect(mainsAlarm.state.powerSource).to.include({ wiredCurrentType: 0 });
   });
 
   it('should report an air quality level of the extended scale', async () => {
-    const [air] = built.get('air').children;
+    const air = built.get('air').root;
     expect(air.state.airQuality.airQuality).to.equal(AIR_QUALITY.VERY_POOR);
     const bindings = new Bindings({ event: { emit: () => null } });
     bindings.add(
@@ -346,7 +370,7 @@ describe('Matter bridge on the real matter.js', function realMatter() {
   });
 
   it('should not mistake a state the bridge pushes for a Matter command', async () => {
-    const [plug] = built.get('plug').children;
+    const plug = built.get('plug').root;
     const contexts = [];
     const observer = (value, oldValue, context) => contexts.push(context);
     plug.events.onOff.onOff$Changed.on(observer);
@@ -358,7 +382,7 @@ describe('Matter bridge on the real matter.js', function realMatter() {
 
   it('should express the smoke alarm first when smoke and CO are pushed at once', async () => {
     const alarmDevice = DEVICES.find(({ id }) => id === 'alarm');
-    const [alarm] = built.get('alarm').children;
+    const alarm = built.get('alarm').root;
     const bindings = new Bindings({ event: { emit: () => null } });
     bindings.add(alarmDevice, built.get('alarm'));
     await Promise.all([
@@ -372,7 +396,7 @@ describe('Matter bridge on the real matter.js', function realMatter() {
   it('should keep the endpoint numbers of a closed device, and forget those of a deleted one', async () => {
     const climate = DEVICES.find(({ id }) => id === 'climate');
     const numbers = endpointNumbers(built.get('climate'));
-    expect(Object.keys(numbers)).to.have.lengthOf(4);
+    expect(Object.keys(numbers)).to.have.lengthOf(3);
 
     // A device taken off the bridge is closed: it leaves the aggregator, and matter.js keeps its
     // numbers for the day it returns.
